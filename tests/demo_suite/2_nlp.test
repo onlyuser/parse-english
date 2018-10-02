@@ -1,0 +1,65 @@
+// basic
+N V.
+N V N.
+N DO(does) V.
+N DO(does) V N.
+N DO(does) not V.
+N DO(does) not V N.
+
+// present progressive
+N is VGERUND.
+N is VGERUND N.
+N is not VGERUND.
+N is not VGERUND N.
+
+// past perfect
+N AUX(has) VPASTPERF.
+N AUX(has) VPASTPERF N.
+N AUX(has) not VPASTPERF.
+N AUX(has) not VPASTPERF N.
+N AUX(has) VPASTPERF VGERUND.
+N AUX(has) VPASTPERF VGERUND N.
+N AUX(has) not VPASTPERF VGERUND.
+N AUX(has) not VPASTPERF VGERUND N.
+
+// future
+N will V.
+N will not V.
+N will BE(be) VGERUND.
+N will not BE(be) VGERUND.
+
+// infinitive
+N V-INFIN(has) to-V V.
+N V-INFIN(has) to-V V N.
+N DO(does) V-INFIN(have) to-V V.
+N DO(does) V-INFIN(have) to-V V N.
+N DO(does) not V-INFIN(have) to-V V.
+N DO(does) not V-INFIN(have) to-V V N.
+
+// passive
+N is VPASTPERF.
+N is VPASTPERF N.
+N is not VPASTPERF.
+N is not VPASTPERF N.
+N AUX(has) been VPASTPERF.
+N AUX(has) been VPASTPERF N.
+N AUX(has) not been VPASTPERF.
+N AUX(has) not been VPASTPERF N.
+N will AUX(has) VPASTPERF.
+N will not AUX(has) VPASTPERF.
+
+// adverb and adjective
+ADV-ADJ ADJ ADJ(CONJ) ADV-ADJ ADJ N V.
+
+// conjugation
+N NP(CONJ) N V VP(CONJ) V CLAUSE(CONJ) N V.
+
+// misc
+i V(have) a fox.
+it is a fox.
+the fox goes from here to-N there.
+the fox is quick.
+the fox was quick.
+the fox AUX(has) been quick.
+the fox will BE(be) quick.
+the quick brown fox jumps over the lazy dog.

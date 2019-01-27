@@ -57,7 +57,7 @@ void yyerror(YYLTYPE* loc, ParserContext* pc, yyscan_t scanner, const char* s)
         int last_line_pos = 0;
         for(int i = pc->scanner_context().m_pos; i >= 0; i--) {
             if(pc->scanner_context().m_buf[i] == '\n') {
-                last_line_pos = i+1;
+                last_line_pos = i + 1;
                 break;
             }
         }
@@ -187,17 +187,6 @@ std::string id_to_name(uint32_t lexer_id)
 uint32_t name_to_id(std::string name)
 {
     return quick_lex(name.c_str());
-}
-
-static void remap_pos_path_to_pos_lexer_id_path(const std::vector<std::string> &pos_path,    // IN
-                                                      std::vector<uint32_t>*          pos_lexer_id_path) // OUT
-{
-    if(!pos_lexer_id_path) {
-        return;
-    }
-    for(std::vector<std::string>::const_iterator p = pos_path.begin(); p != pos_path.end(); p++) {
-        pos_lexer_id_path->push_back(name_to_id(*p));
-    }
 }
 
 static std::string expand_contractions(std::string &sentence)
@@ -1036,8 +1025,20 @@ struct pos_path_ast_tuple_t
           m_path_index(path_index) {}
 };
 
-bool import_ast(options_t                   &options,
-                xl::Allocator               &alloc,
+bool print_node(const xl::node::NodeIdentIFace* node)
+{
+    if(node->type() == xl::node::NodeIdentIFace::SYMBOL) {
+        std::cout << node->name() << std::endl;
+        return true;
+    }
+    if(node->type() == xl::node::NodeIdentIFace::IDENT) {
+        std::cout << *dynamic_cast<const xl::node::TermNodeIFace<xl::node::NodeIdentIFace::IDENT>*>(node)->value() << std::endl;
+    }
+    return true;
+}
+
+bool import_ast(options_t             &options,
+                xl::Allocator         &alloc,
                 pos_path_ast_tuple_t*  pos_path_ast_tuple)
 {
     if(!pos_path_ast_tuple) {
@@ -1059,11 +1060,19 @@ bool import_ast(options_t                   &options,
             pos_path_str.append(*p + " ");
         }
 #ifdef DEBUG
-        std::cerr << "INFO: import path #" << pos_path_ast_tuple->m_path_index << ": <" << pos_path_str << ">" << std::endl;
+        std::cerr << "INFO: import path #" << pos_path_ast_tuple->m_path_index << ": " << pos_path_str << std::endl;
 #endif
         std::vector<uint32_t> pos_lexer_id_path;
-        remap_pos_path_to_pos_lexer_id_path(pos_path, &pos_lexer_id_path);
+        for(std::vector<std::string>::const_iterator p = pos_path.begin(); p != pos_path.end(); p++) {
+            pos_lexer_id_path.push_back(name_to_id(*p));
+        }
+#if 1
+        // NOTE: doesn't depend on SCANNER_CONTEXT.current_lexer_id()
+        xl::node::NodeIdentIFace* _ast = make_ast(alloc, pos_path_str.c_str(), pos_lexer_id_path);
+#else
+        // NOTE: depends on SCANNER_CONTEXT.current_lexer_id()
         xl::node::NodeIdentIFace* _ast = make_ast(alloc, options.expr.c_str(), pos_lexer_id_path);
+#endif
         if(!_ast) {
 #ifdef DEBUG
             std::cerr << "ERROR: " << _error_messages.str().c_str() << std::endl;
@@ -1073,13 +1082,13 @@ bool import_ast(options_t                   &options,
             pos_path_ast_tuple->m_ast = NULL;
             return false;
         }
-        xl::mvc::MVCView::annotate_tree(_ast);
+        //xl::mvc::MVCView::annotate_tree(_ast, print_node);
         pos_path_ast_tuple->m_ast = _ast;
     }
     return true;
 }
 
-void export_ast(options_t                  &options,
+void export_ast(options_t            &options,
                 pos_path_ast_tuple_t &pos_path_ast_tuple)
 {
     xl::node::NodeIdentIFace* ast = pos_path_ast_tuple.m_ast;
@@ -1091,7 +1100,7 @@ void export_ast(options_t                  &options,
     for(std::vector<std::string>::iterator p = pos_path.begin(); p != pos_path.end(); p++) {
         pos_path_str.append(*p + " ");
     }
-    std::cerr << "INFO: export path #" << pos_path_ast_tuple.m_path_index << ": <" << pos_path_str << ">" << std::endl;
+    std::cerr << "INFO: export path #" << pos_path_ast_tuple.m_path_index << ": " << pos_path_str << std::endl;
     switch(options.mode) {
         case options_t::MODE_LISP:  xl::mvc::MVCView::print_lisp(ast, options.indent); break;
         case options_t::MODE_XML:   xl::mvc::MVCView::print_xml(ast); break;
@@ -1137,8 +1146,7 @@ bool apply_options(options_t &options)
             if(!import_ast(options, alloc, &(*q))) {
                 continue;
             }
-        }
-        catch(const char* s) {
+        } catch(const char* s) {
             std::cerr << "ERROR: " << s << std::endl;
             continue;
         }

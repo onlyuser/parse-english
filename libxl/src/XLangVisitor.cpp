@@ -93,6 +93,9 @@ void VisitorDFS::visit(const node::SymbolNodeIFace* _node)
 {
     if(m_filter_cb)
     {
+        if(_node->is_root() && !m_filter_cb(_node)) {
+            return;
+        }
         const node::NodeIdentIFace* child = NULL;
         if(next_child(_node, &child))
         {

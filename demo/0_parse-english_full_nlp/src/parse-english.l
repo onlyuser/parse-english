@@ -61,12 +61,14 @@
 
 void begin_token(yyscan_t yyscanner, size_t length);
 
+std::string g_orig_word;
+
 %}
 
 %option noyywrap nounput noyy_top_state
 %option reentrant bison-bridge bison-locations
 %option stack
-%x ST_COMMENT_BLOCK ST_COMMENT_LINE
+%x ST_COMMENT_BLOCK ST_COMMENT_LINE ST_ORIG_WORD
 
 ws        [ \t\n]+
 any       .|[\n]
@@ -166,66 +168,77 @@ adjective               {adjective_color}|{adjective_emotion}|{adjective_size}|{
             }
 <ST_COMMENT_LINE>. ;
 
+"{"         {LOC;
+                PUSH_STATE(ST_ORIG_WORD);
+            }
+<ST_ORIG_WORD>"}" {LOC;
+                POP_STATE;
+            }
+<ST_ORIG_WORD>{lit_ident}|{lit_char} {LOC;
+                //std::cerr << "g_orig_word: " << yytext << std::endl;
+                g_orig_word = yytext;
+            }
+
  /*==========================================================================*/
  /* NOUN -- VERB -- ADJECTIVE -- ADVERB -- PREPOSITION -- NOT */
 
 "N"|{pronoun}|{noun} {LOC;
-                LVAL.ident_value = TREE_CONTEXT.alloc_unique_string(yytext);
+                LVAL.ident_value = TREE_CONTEXT.alloc_unique_string(std::string("{") + g_orig_word + "}" + ((g_orig_word == yytext) ? "" : yytext));
                 return ID_N;
             }
 
-"V"|{verb} {LOC;
-                LVAL.ident_value = TREE_CONTEXT.alloc_unique_string(yytext);
+"V"|{verb}  {LOC;
+                LVAL.ident_value = TREE_CONTEXT.alloc_unique_string(std::string("{") + g_orig_word + "}" + ((g_orig_word == yytext) ? "" : yytext));
                 return ID_V;
             }
 
 "VPAST"|{vpast} {LOC;
-                LVAL.ident_value = TREE_CONTEXT.alloc_unique_string(yytext);
+                LVAL.ident_value = TREE_CONTEXT.alloc_unique_string(std::string("{") + g_orig_word + "}" + ((g_orig_word == yytext) ? "" : yytext));
                 return ID_VPAST;
             }
 
 "VGERUND"|{vgerund} {LOC;
-                LVAL.ident_value = TREE_CONTEXT.alloc_unique_string(yytext);
+                LVAL.ident_value = TREE_CONTEXT.alloc_unique_string(std::string("{") + g_orig_word + "}" + ((g_orig_word == yytext) ? "" : yytext));
                 return ID_VGERUND;
             }
 
 "VPASTPERF"|{vpastperf} {LOC;
-                LVAL.ident_value = TREE_CONTEXT.alloc_unique_string(yytext);
+                LVAL.ident_value = TREE_CONTEXT.alloc_unique_string(std::string("{") + g_orig_word + "}" + ((g_orig_word == yytext) ? "" : yytext));
                 return ID_VPASTPERF;
             }
 
 "V-INFIN"|{v_infin} {LOC;
-                LVAL.ident_value = TREE_CONTEXT.alloc_unique_string(yytext);
+                LVAL.ident_value = TREE_CONTEXT.alloc_unique_string(std::string("{") + g_orig_word + "}" + ((g_orig_word == yytext) ? "" : yytext));
                 return ID_V_MOD_INFIN;
             }
 
 "ADJ"|{adjective} {LOC;
-                LVAL.ident_value = TREE_CONTEXT.alloc_unique_string(yytext);
+                LVAL.ident_value = TREE_CONTEXT.alloc_unique_string(std::string("{") + g_orig_word + "}" + ((g_orig_word == yytext) ? "" : yytext));
                 return ID_ADJ;
             }
 
 "ADV-ADJ"   {LOC;
-                LVAL.ident_value = TREE_CONTEXT.alloc_unique_string(yytext);
+                LVAL.ident_value = TREE_CONTEXT.alloc_unique_string(std::string("{") + g_orig_word + "}" + ((g_orig_word == yytext) ? "" : yytext));
                 return ID_ADV_MOD_ADJ;
             }
 
 "ADV-V"     {LOC;
-                LVAL.ident_value = TREE_CONTEXT.alloc_unique_string(yytext);
+                LVAL.ident_value = TREE_CONTEXT.alloc_unique_string(std::string("{") + g_orig_word + "}" + ((g_orig_word == yytext) ? "" : yytext));
                 return ID_ADV_MOD_V;
             }
 
 "ADV-VGERUND_PRE" {LOC;
-                LVAL.ident_value = TREE_CONTEXT.alloc_unique_string(yytext);
+                LVAL.ident_value = TREE_CONTEXT.alloc_unique_string(std::string("{") + g_orig_word + "}" + ((g_orig_word == yytext) ? "" : yytext));
                 return ID_ADV_MOD_VGERUND_PRE;
             }
 
 "ADV-VGERUND_POST" {LOC;
-                LVAL.ident_value = TREE_CONTEXT.alloc_unique_string(yytext);
+                LVAL.ident_value = TREE_CONTEXT.alloc_unique_string(std::string("{") + g_orig_word + "}" + ((g_orig_word == yytext) ? "" : yytext));
                 return ID_ADV_MOD_VGERUND_POST;
             }
 
 "PREP"|"to-N"|"from"|"of"|"for"|"with"|"on"|"in"|"at"|"over"|"by"|"as" {LOC;
-                LVAL.ident_value = TREE_CONTEXT.alloc_unique_string(yytext);
+                LVAL.ident_value = TREE_CONTEXT.alloc_unique_string(std::string("{") + g_orig_word + "}" + ((g_orig_word == yytext) ? "" : yytext));
                 return ID_PREP;
             }
 
@@ -233,17 +246,17 @@ adjective               {adjective_color}|{adjective_emotion}|{adjective_size}|{
  /* DEMONSTRATIVE -- ARTICLE/PREFIX-POSSESSIVE -- SUFFIX-POSSESSIVE */
 
 "this"|"DEM(that)"|"these"|"those" {LOC;
-                LVAL.ident_value = TREE_CONTEXT.alloc_unique_string(yytext);
+                LVAL.ident_value = TREE_CONTEXT.alloc_unique_string(std::string("{") + g_orig_word + "}" + ((g_orig_word == yytext) ? "" : yytext));
                 return ID_DEM;
             }
 
 "a"|"the"|"my"|"our"|"your"|"his"|"her"|"their" {LOC;
-                LVAL.ident_value = TREE_CONTEXT.alloc_unique_string(yytext);
+                LVAL.ident_value = TREE_CONTEXT.alloc_unique_string(std::string("{") + g_orig_word + "}" + ((g_orig_word == yytext) ? "" : yytext));
                 return ID_ART_OR_PREFIXPOSS;
             }
 
 "SUFFIX-POSS" {LOC;
-                LVAL.ident_value = TREE_CONTEXT.alloc_unique_string(yytext);
+                LVAL.ident_value = TREE_CONTEXT.alloc_unique_string(std::string("{") + g_orig_word + "}" + ((g_orig_word == yytext) ? "" : yytext));
                 return ID_SUFFIXPOSS;
             }
 
@@ -251,12 +264,12 @@ adjective               {adjective_color}|{adjective_emotion}|{adjective_size}|{
  /* BE */
 
 "being"     {LOC;
-                LVAL.ident_value = TREE_CONTEXT.alloc_unique_string(yytext);
+                LVAL.ident_value = TREE_CONTEXT.alloc_unique_string(std::string("{") + g_orig_word + "}" + ((g_orig_word == yytext) ? "" : yytext));
                 return ID_BEING;
             }
 
 "been"      {LOC;
-                LVAL.ident_value = TREE_CONTEXT.alloc_unique_string(yytext);
+                LVAL.ident_value = TREE_CONTEXT.alloc_unique_string(std::string("{") + g_orig_word + "}" + ((g_orig_word == yytext) ? "" : yytext));
                 return ID_BEEN;
             }
 
@@ -264,32 +277,32 @@ adjective               {adjective_color}|{adjective_emotion}|{adjective_size}|{
  /* BE -- HAVE -- MODAL -- DO -- TO */
 
 "BE(be)"|"am"|"is"|"are"|"was"|"were" {LOC;
-                LVAL.ident_value = TREE_CONTEXT.alloc_unique_string(yytext);
+                LVAL.ident_value = TREE_CONTEXT.alloc_unique_string(std::string("{") + g_orig_word + "}" + ((g_orig_word == yytext) ? "" : yytext));
                 return ID_BE;
             }
 
 "CMD(be)"   {LOC;
-                LVAL.ident_value = TREE_CONTEXT.alloc_unique_string(yytext);
+                LVAL.ident_value = TREE_CONTEXT.alloc_unique_string(std::string("{") + g_orig_word + "}" + ((g_orig_word == yytext) ? "" : yytext));
                 return ID_CBE;
             }
 
 "AUX(have)"|"AUX(has)" {LOC;
-                LVAL.ident_value = TREE_CONTEXT.alloc_unique_string(yytext);
+                LVAL.ident_value = TREE_CONTEXT.alloc_unique_string(std::string("{") + g_orig_word + "}" + ((g_orig_word == yytext) ? "" : yytext));
                 return ID_HAVE;
             }
 
 "will"|"would"|"can"|"could"|"might"|"should"|"must" {LOC;
-                LVAL.ident_value = TREE_CONTEXT.alloc_unique_string(yytext);
+                LVAL.ident_value = TREE_CONTEXT.alloc_unique_string(std::string("{") + g_orig_word + "}" + ((g_orig_word == yytext) ? "" : yytext));
                 return ID_MODAL;
             }
 
 "DO(do)"|"DO(does)"|"DO(did)" {LOC;
-                LVAL.ident_value = TREE_CONTEXT.alloc_unique_string(yytext);
+                LVAL.ident_value = TREE_CONTEXT.alloc_unique_string(std::string("{") + g_orig_word + "}" + ((g_orig_word == yytext) ? "" : yytext));
                 return ID_DO;
             }
 
 "to-V"      {LOC;
-                LVAL.ident_value = TREE_CONTEXT.alloc_unique_string(yytext);
+                LVAL.ident_value = TREE_CONTEXT.alloc_unique_string(std::string("{") + g_orig_word + "}" + ((g_orig_word == yytext) ? "" : yytext));
                 return ID_TO_MOD_V;
             }
 
@@ -297,27 +310,27 @@ adjective               {adjective_color}|{adjective_emotion}|{adjective_size}|{
  /* CONJUGATION */
 
 "CLAUSE(CONJ)" {LOC;
-                LVAL.ident_value = TREE_CONTEXT.alloc_unique_string(yytext);
+                LVAL.ident_value = TREE_CONTEXT.alloc_unique_string(std::string("{") + g_orig_word + "}" + ((g_orig_word == yytext) ? "" : yytext));
                 return ID_CONJ_CLAUSE;
             }
 
 "NP(CONJ)"  {LOC;
-                LVAL.ident_value = TREE_CONTEXT.alloc_unique_string(yytext);
+                LVAL.ident_value = TREE_CONTEXT.alloc_unique_string(std::string("{") + g_orig_word + "}" + ((g_orig_word == yytext) ? "" : yytext));
                 return ID_CONJ_NP;
             }
 
 "VP(CONJ)"  {LOC;
-                LVAL.ident_value = TREE_CONTEXT.alloc_unique_string(yytext);
+                LVAL.ident_value = TREE_CONTEXT.alloc_unique_string(std::string("{") + g_orig_word + "}" + ((g_orig_word == yytext) ? "" : yytext));
                 return ID_CONJ_VP;
             }
 
 "ADJ(CONJ)" {LOC;
-                LVAL.ident_value = TREE_CONTEXT.alloc_unique_string(yytext);
+                LVAL.ident_value = TREE_CONTEXT.alloc_unique_string(std::string("{") + g_orig_word + "}" + ((g_orig_word == yytext) ? "" : yytext));
                 return ID_CONJ_ADJ;
             }
 
 "PREP(CONJ)" {LOC;
-                LVAL.ident_value = TREE_CONTEXT.alloc_unique_string(yytext);
+                LVAL.ident_value = TREE_CONTEXT.alloc_unique_string(std::string("{") + g_orig_word + "}" + ((g_orig_word == yytext) ? "" : yytext));
                 return ID_CONJ_PREP;
             }
 
@@ -325,12 +338,12 @@ adjective               {adjective_color}|{adjective_emotion}|{adjective_size}|{
  /* WH-WORD */
 
 "who"|"what"|"where"|"when"|"why"|"how"|"which" {LOC;
-                LVAL.ident_value = TREE_CONTEXT.alloc_unique_string(yytext);
+                LVAL.ident_value = TREE_CONTEXT.alloc_unique_string(std::string("{") + g_orig_word + "}" + ((g_orig_word == yytext) ? "" : yytext));
                 return ID_WHWORD;
             }
 
 "WH-WORD(that)" {LOC;
-                LVAL.ident_value = TREE_CONTEXT.alloc_unique_string(yytext);
+                LVAL.ident_value = TREE_CONTEXT.alloc_unique_string(std::string("{") + g_orig_word + "}" + ((g_orig_word == yytext) ? "" : yytext));
                 return ID_WHWORD_MOD_THAT;
             }
 
@@ -338,17 +351,17 @@ adjective               {adjective_color}|{adjective_emotion}|{adjective_size}|{
  /* CONDITIONAL */
 
 "if"        {LOC;
-                LVAL.ident_value = TREE_CONTEXT.alloc_unique_string(yytext);
+                LVAL.ident_value = TREE_CONTEXT.alloc_unique_string(std::string("{") + g_orig_word + "}" + ((g_orig_word == yytext) ? "" : yytext));
                 return ID_IF;
             }
 
 "then"      {LOC;
-                LVAL.ident_value = TREE_CONTEXT.alloc_unique_string(yytext);
+                LVAL.ident_value = TREE_CONTEXT.alloc_unique_string(std::string("{") + g_orig_word + "}" + ((g_orig_word == yytext) ? "" : yytext));
                 return ID_THEN;
             }
 
 "because"   {LOC;
-                LVAL.ident_value = TREE_CONTEXT.alloc_unique_string(yytext);
+                LVAL.ident_value = TREE_CONTEXT.alloc_unique_string(std::string("{") + g_orig_word + "}" + ((g_orig_word == yytext) ? "" : yytext));
                 return ID_BECAUSE;
             }
 
@@ -356,27 +369,27 @@ adjective               {adjective_color}|{adjective_emotion}|{adjective_size}|{
  /* NOT -- FREQ -- TOO -- PUNC */
 
 "not"       {LOC;
-                LVAL.ident_value = TREE_CONTEXT.alloc_unique_string(yytext);
+                LVAL.ident_value = TREE_CONTEXT.alloc_unique_string(std::string("{") + g_orig_word + "}" + ((g_orig_word == yytext) ? "" : yytext));
                 return ID_NOT;
             }
 
 "FREQ"      {LOC;
-                LVAL.ident_value = TREE_CONTEXT.alloc_unique_string(yytext);
+                LVAL.ident_value = TREE_CONTEXT.alloc_unique_string(std::string("{") + g_orig_word + "}" + ((g_orig_word == yytext) ? "" : yytext));
                 return ID_FREQ;
             }
 
 "FREQ_EOS"  {LOC;
-                LVAL.ident_value = TREE_CONTEXT.alloc_unique_string(yytext);
+                LVAL.ident_value = TREE_CONTEXT.alloc_unique_string(std::string("{") + g_orig_word + "}" + ((g_orig_word == yytext) ? "" : yytext));
                 return ID_FREQ_EOS;
             }
 
 "too"       {LOC;
-                LVAL.ident_value = TREE_CONTEXT.alloc_unique_string(yytext);
+                LVAL.ident_value = TREE_CONTEXT.alloc_unique_string(std::string("{") + g_orig_word + "}" + ((g_orig_word == yytext) ? "" : yytext));
                 return ID_TOO;
             }
 
 "."|"?"|"!" {LOC;
-                LVAL.ident_value = TREE_CONTEXT.alloc_unique_string(yytext);
+                LVAL.ident_value = TREE_CONTEXT.alloc_unique_string(std::string("{") + g_orig_word + "}" + ((g_orig_word == yytext) ? "" : yytext));
                 return ID_PUNC;
             }
 
@@ -384,6 +397,7 @@ adjective               {adjective_color}|{adjective_emotion}|{adjective_size}|{
  /* LITERALS */
 
 {lit_ident} {LOC;
+                //std::cerr << "lit_ident: " << yytext << std::endl; 
                 LVAL.ident_value = TREE_CONTEXT.alloc_unique_string(yytext);
                 uint32_t lexer_id = SCANNER_CONTEXT.current_lexer_id();
                 //std::cout << yytext << "<" << id_to_name(lexer_id) << ">" << std::endl;
@@ -423,7 +437,7 @@ void begin_token(yyscan_t yyscanner, size_t length)
     loc->first_line    = PARM.m_line;
     loc->first_column  = PARM.m_prev_column;
     loc->last_line     = PARM.m_line;
-    loc->last_column   = PARM.m_prev_column+length-1;
+    loc->last_column   = PARM.m_prev_column + length - 1;
     PARM.m_prev_column = PARM.m_column;
-    PARM.m_prev_column--; // compensate for 1-char over-read
+    //PARM.m_prev_column--; // compensate for 1-char over-read
 }

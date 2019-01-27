@@ -44,10 +44,14 @@ void MVCView::annotate_tree(
         const node::NodeIdentIFace*      _node,
         visitor::Filterable::filter_cb_t filter_cb)
 {
+#if 1
+    // DFS traversal
     visitor::TreeAnnotator v;
     if(filter_cb)
         v.set_filter_cb(filter_cb);
     v.dispatch_visit(_node);
+#else
+    // BFS traversal
     auto symbol = dynamic_cast<const node::SymbolNodeIFace*>(_node);
     if(!symbol)
         return;
@@ -56,6 +60,7 @@ void MVCView::annotate_tree(
         v_bfs.set_filter_cb(filter_cb);
     if(v_bfs.visit_next_child(symbol))
         while(v_bfs.visit_next_child());
+#endif
 }
 
 void MVCView::print_lisp(

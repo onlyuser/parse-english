@@ -137,10 +137,8 @@ bool get_pos_options(std::string              word,
     {
         pos_options->push_back("FREQ");
         pos_options->push_back("FREQ_EOS");
-    } else {
-        pos_options->push_back(word);
     }
-    return true;
+    return pos_options->size();
 }
 
 void build_all_paths_from_pos_options(std::list<std::vector<int> >*                 all_paths,   // OUT
@@ -152,19 +150,23 @@ void build_all_paths_from_pos_options(std::list<std::vector<int> >*             
         return;
     }
 
-    std::vector<int>* path_so_far_to_use = path_so_far;
-    if(!path_so_far_to_use) {
-        path_so_far_to_use = new std::vector<int>(pos_table.size());
-        if(!path_so_far_to_use) {
+    std::vector<int>* _path_to_use = NULL;
+    if(path_so_far) {
+        _path_to_use = path_so_far;
+    } else {
+        _path_to_use = new std::vector<int>(pos_table.size());
+        if(!_path_to_use) {
             return;
         }
     }
 
     // stop condition
     if(static_cast<size_t>(word_index) == pos_table.size()) { // reached last word
-        all_paths->push_back(*path_so_far_to_use);
+        all_paths->push_back(*_path_to_use);
+
+        // cleanup
         if(!path_so_far) {
-            delete path_so_far_to_use;
+            delete _path_to_use;
         }
         return;
     }
@@ -172,15 +174,16 @@ void build_all_paths_from_pos_options(std::list<std::vector<int> >*             
     // dynamic programming step
     const std::vector<std::string> &pos_options = pos_table[word_index];
     for(int pos_index = 0; pos_index < static_cast<int>(pos_options.size()); pos_index++) {
-        (*path_so_far_to_use)[word_index] = pos_index;
+        (*_path_to_use)[word_index] = pos_index;
         build_all_paths_from_pos_options(all_paths,
                                          pos_table,
-                                         path_so_far_to_use,
+                                         _path_to_use,
                                          word_index + 1);
     }
 
+    // cleanup
     if(!path_so_far) {
-        delete path_so_far_to_use;
+        delete _path_to_use;
     }
 }
 
@@ -196,21 +199,30 @@ void build_pos_paths_from_sentence(std::list<std::vector<std::string> >* all_pat
     std::vector<std::string> words = xl::tokenize(sentence);
     pos_table.resize(words.size());
     int word_index = 0;
-    for(std::vector<std::string>::iterator t = words.begin(); t != words.end(); t++) {
+    for(std::vector<std::string>::iterator p = words.begin(); p != words.end(); p++) {
         std::vector<std::string> pos_options;
-        get_pos_options(*t, &pos_options);
-        std::copy(pos_options.begin(), pos_options.end(), std::back_inserter(pos_table[word_index]));
+        if(get_pos_options(*p, &pos_options)) {
+            for(std::vector<std::string>::iterator q = pos_options.begin(); q != pos_options.end(); q++) {
+                pos_table[word_index].push_back(std::string("{") + *p + "}" + *q);
+            }
+        } else {
+            pos_table[word_index].push_back(std::string("{") + *p + "}" + *p);
+        }
 
         // print debug messages
         {
-            std::cerr << "INFO: " << *t << "<";
-            for(std::vector<std::string>::iterator r = pos_options.begin(); r != pos_options.end(); r++) {
-                std::cerr << *r;
-                if(r != --pos_options.end()) {
-                    std::cerr << " ";
+            std::cerr << "INFO: {" << *p << "}:\t";
+            if(pos_options.size()) {
+                for(std::vector<std::string>::iterator r = pos_options.begin(); r != pos_options.end(); r++) {
+                    std::cerr << *r;
+                    if(r != --pos_options.end()) {
+                        std::cerr << " ";
+                    }
                 }
+            } else {
+                std::cerr << *p;
             }
-            std::cerr << ">" << std::endl;
+            std::cerr << std::endl;
         }
 
         word_index++;
@@ -224,8 +236,9 @@ void build_pos_paths_from_sentence(std::list<std::vector<std::string> >* all_pat
     int path_index = 0;
     for(std::list<std::vector<int> >::const_iterator p = all_paths.begin(); p != all_paths.end(); p++) {
         std::vector<std::string> path_str;
-        int word_index = 0;
         const std::vector<int> &path = *p;
+
+        int word_index = 0;
         for(std::vector<int>::const_iterator q = path.begin(); q != path.end(); q++) {
             path_str.push_back(pos_table[word_index][*q]);
             word_index++;
@@ -235,9 +248,9 @@ void build_pos_paths_from_sentence(std::list<std::vector<std::string> >* all_pat
         {
             int word_index = 0;
             std::cerr << "INFO: path #" << path_index << ": ";
-            for(std::vector<int>::const_iterator q = path.begin(); q != path.end(); q++) {
-                std::cerr << pos_table[word_index][*q];
-                if(q != --path.end()) {
+            for(std::vector<int>::const_iterator r = path.begin(); r != path.end(); r++) {
+                std::cerr << pos_table[word_index][*r];
+                if(r != --path.end()) {
                     std::cerr << " ";
                 }
                 word_index++;

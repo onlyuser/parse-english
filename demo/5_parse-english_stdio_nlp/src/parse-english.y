@@ -943,8 +943,7 @@ bool import_ast(options_t &options, xl::Allocator &alloc, xl::node::NodeIdentIFa
             std::cerr << "ERROR: de-serialize from xml fail!" << std::endl;
             return false;
         }
-    }
-    else {
+    } else {
         ast = make_ast(alloc);
         if(!ast) {
             std::cerr << "ERROR: " << _error_messages.str().c_str() << std::endl;

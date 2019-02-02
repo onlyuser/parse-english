@@ -53,7 +53,7 @@ Supported Language Features
 Limitations
 -----------
 
-* Vocabulary is hardcoded in the lexer.
+* Hard coded grammar & vocabulary.
 * A brute force algorithm tries all supported interpretations of a sentence. This is slow for long sentences.
 * BNF rules are suitable for specifying constituent-based phrase structure grammars, but are a poor fit for expressing non-local dependencies.
 

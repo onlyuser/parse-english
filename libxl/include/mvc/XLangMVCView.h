@@ -28,20 +28,17 @@ namespace xl { namespace mvc {
 
 struct MVCView
 {
-    static void annotate_tree(
-            const node::NodeIdentIFace*      _node,
-            visitor::Filterable::filter_cb_t filter_cb = NULL);
-    static void print_lisp(
-            const node::NodeIdentIFace*      _node,
-            bool                             indent    = false,
-            visitor::Filterable::filter_cb_t filter_cb = NULL);
-    static void print_xml(
-            const node::NodeIdentIFace*      _node,
-            visitor::Filterable::filter_cb_t filter_cb = NULL);
-    static void print_dot(
-            const node::NodeIdentIFace* _node,
-            bool                        horizontal          = false,
-            bool                        print_digraph_block = true);
+    static void annotate_tree(const node::NodeIdentIFace*            _node,
+                                    visitor::Filterable::filter_cb_t filter_cb = NULL,
+                                    bool                             bfs       = false);
+    static void print_lisp(const node::NodeIdentIFace*            _node,
+                                 bool                             indent    = false,
+                                 visitor::Filterable::filter_cb_t filter_cb = NULL);
+    static void print_xml(const node::NodeIdentIFace*             _node,
+                                visitor::Filterable::filter_cb_t filter_cb = NULL);
+    static void print_dot(const node::NodeIdentIFace* _node,
+                                bool                  horizontal          = false,
+                                bool                  print_digraph_block = true);
     static void print_dot_header(bool horizontal);
     static void print_dot_footer();
     static void print_graph(const node::NodeIdentIFace* p);

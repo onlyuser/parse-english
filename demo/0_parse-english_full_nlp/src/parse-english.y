@@ -325,11 +325,11 @@ QUERY:
     ;
 
 COND:
-      IF      CLAUSE_LIST THEN        CLAUSE_LIST { $$ = MAKE_SYMBOL(ID_COND, 2, $2, $4); }
-    |         CLAUSE_LIST IF          CLAUSE_LIST { $$ = MAKE_SYMBOL(ID_COND, 2, $1, $3); }
-    | BECAUSE CLAUSE_LIST CONJ_CLAUSE CLAUSE_LIST { $$ = MAKE_SYMBOL(ID_COND, 2, $2, $4); }
-    |         CLAUSE_LIST BECAUSE     CLAUSE_LIST { $$ = MAKE_SYMBOL(ID_COND, 2, $1, $3); }
-    |         AUX_NP_V    CONJ_CLAUSE CLAUSE_LIST { $$ = MAKE_SYMBOL(ID_COND, 2, $1, $3); }
+      IF      CLAUSE_LIST THEN        CLAUSE_LIST { $$ = MAKE_SYMBOL(ID_COND, 2, $2, $4); } // if you build it then he will come
+    |         CLAUSE_LIST IF          CLAUSE_LIST { $$ = MAKE_SYMBOL(ID_COND, 2, $1, $3); } // he will come if you build it
+    | BECAUSE CLAUSE_LIST CONJ_CLAUSE CLAUSE_LIST { $$ = MAKE_SYMBOL(ID_COND, 2, $2, $4); } // because you built it, he will come
+    |         CLAUSE_LIST BECAUSE     CLAUSE_LIST { $$ = MAKE_SYMBOL(ID_COND, 2, $1, $3); } // he will come because you built it
+    |         AUX_NP_V    CONJ_CLAUSE CLAUSE_LIST { $$ = MAKE_SYMBOL(ID_COND, 2, $1, $3); } // had you built it, he would have come 
     ;
 
 CMD:
@@ -337,98 +337,99 @@ CMD:
     ;
 
 CLAUSE:
-      NP_LIST VP_LIST { $$ = MAKE_SYMBOL(ID_CLAUSE, 2, $1, $2); }
+      NP_LIST VP_LIST { $$ = MAKE_SYMBOL(ID_CLAUSE, 2, $1, $2); } // he goes
     | PREP_LIST       { $$ = MAKE_SYMBOL(ID_CLAUSE, 1, $1); }
     ;
 
 QCLAUSE:
-             QVP { $$ = MAKE_SYMBOL(ID_QCLAUSE, 1, $1); }
-    | WHWORD QVP { $$ = MAKE_SYMBOL(ID_QCLAUSE, 2, $1, $2); }
+             QVP { $$ = MAKE_SYMBOL(ID_QCLAUSE, 1, $1); }     // he did it?
+    | WHWORD QVP { $$ = MAKE_SYMBOL(ID_QCLAUSE, 2, $1, $2); } // who did it?
     ;
 
 //=============================================================================
 // NOUN PART -- VERB PART
 
 NP:
-      POSS           { $$ = MAKE_SYMBOL(ID_NP, 1, $1); }
-    | ADV_VGERUND_NP { $$ = MAKE_SYMBOL(ID_NP, 1, $1); }
-    | INFIN          { $$ = MAKE_SYMBOL(ID_NP, 1, $1); }
-    | WHPRON VP      { $$ = MAKE_SYMBOL(ID_NP, 2, $1, $2); }
+      POSS           { $$ = MAKE_SYMBOL(ID_NP, 1, $1); }     // the/my father
+    | ADV_VGERUND_NP { $$ = MAKE_SYMBOL(ID_NP, 1, $1); }     // quickly going there
+    | INFIN          { $$ = MAKE_SYMBOL(ID_NP, 1, $1); }     // to go there
+    | WHPRON VP      { $$ = MAKE_SYMBOL(ID_NP, 2, $1, $2); } // who (pronoun) was there
     | PREP_LIST      { $$ = MAKE_SYMBOL(ID_NP, 1, $1); }
     ;
 
 POSS:
-      DET_ADJ_N                      { $$ = MAKE_SYMBOL(ID_POSS, 1, $1); }
-    | DET_ADJ_N SUFFIXPOSS POSS_LIST { $$ = MAKE_SYMBOL(ID_POSS, 3, $1, $2, $3); }
-    |                      POSS_LIST { $$ = MAKE_SYMBOL(ID_POSS, 1, $1); }
+      DET_ADJ_N                      { $$ = MAKE_SYMBOL(ID_POSS, 1, $1); }         // the/my red apple
+    | DET_ADJ_N SUFFIXPOSS POSS_LIST { $$ = MAKE_SYMBOL(ID_POSS, 3, $1, $2, $3); } // the/my father's mother's sister
+    |                      POSS_LIST { $$ = MAKE_SYMBOL(ID_POSS, 1, $1); }         // father's mother's sister
     ;
 
 VP:
-        AUX_NOT_V                      { $$ = MAKE_SYMBOL(ID_VP, 1, $1); }
-    | MODAL_NOT_OR_FREQ   MODAL_TARGET { $$ = MAKE_SYMBOL(ID_VP, 2, $1, $2); }
-    |    DO_NOT_OR_FREQ      DO_TARGET { $$ = MAKE_SYMBOL(ID_VP, 2, $1, $2); }
-    |                   FREQ_DO_TARGET { $$ = MAKE_SYMBOL(ID_VP, 1, $1); }
-    |                     ADV_VPAST_NP { $$ = MAKE_SYMBOL(ID_VP, 1, $1); }
+        AUX_NOT_V                      { $$ = MAKE_SYMBOL(ID_VP, 1, $1); }     // is going there
+    | MODAL_NOT_OR_FREQ   MODAL_TARGET { $$ = MAKE_SYMBOL(ID_VP, 2, $1, $2); } // can go there
+    |    DO_NOT_OR_FREQ      DO_TARGET { $$ = MAKE_SYMBOL(ID_VP, 2, $1, $2); } // does go there
+    |                   FREQ_DO_TARGET { $$ = MAKE_SYMBOL(ID_VP, 1, $1); }     // always goes there
+    |                     ADV_VPAST_NP { $$ = MAKE_SYMBOL(ID_VP, 1, $1); }     // quickly went there
     ;
 
 QVP:
-        AUX_NP_V              { $$ = MAKE_SYMBOL(ID_QVP, 1, $1); }
-    | MODAL_NP   MODAL_TARGET { $$ = MAKE_SYMBOL(ID_QVP, 2, $1, $2); }
-    |    DO_NP      DO_TARGET { $$ = MAKE_SYMBOL(ID_QVP, 2, $1, $2); }
+        AUX_NP_V              { $$ = MAKE_SYMBOL(ID_QVP, 1, $1); }     // is he going?
+    | MODAL_NP   MODAL_TARGET { $$ = MAKE_SYMBOL(ID_QVP, 2, $1, $2); } // can he go?
+    |    DO_NP      DO_TARGET { $$ = MAKE_SYMBOL(ID_QVP, 2, $1, $2); } // does he go?
     ;
 
 CVP:
-      CAUX_V                        { $$ = MAKE_SYMBOL(ID_CVP, 1, $1); }
-    | DO_NOT_OR_FREQ      DO_TARGET { $$ = MAKE_SYMBOL(ID_CVP, 2, $1, $2); }
-    |                FREQ_DO_TARGET { $$ = MAKE_SYMBOL(ID_CVP, 1, $1); }
+      CAUX_V                        { $$ = MAKE_SYMBOL(ID_CVP, 1, $1); }     // be there!
+    | DO_NOT_OR_FREQ      DO_TARGET { $$ = MAKE_SYMBOL(ID_CVP, 2, $1, $2); } // do go there!
+    |                FREQ_DO_TARGET { $$ = MAKE_SYMBOL(ID_CVP, 1, $1); }     // always go there!
     ;
 
 //=============================================================================
 // AUXILIARY VERB
 
 AUX_V:
-           BE     OPT_BE_TARGET { $$ = MAKE_SYMBOL(ID_AUX_V, 2, $1, $2); }
-    | HAVE BEEN   OPT_BE_TARGET { $$ = MAKE_SYMBOL(ID_AUX_V, 3, $1, $2, $3); }
-    | HAVE      ADV_HAVE_TARGET { $$ = MAKE_SYMBOL(ID_AUX_V, 2, $1, $2); }
+           BE     OPT_BE_TARGET { $$ = MAKE_SYMBOL(ID_AUX_V, 2, $1, $2); }     // be there
+    | HAVE BEEN   OPT_BE_TARGET { $$ = MAKE_SYMBOL(ID_AUX_V, 3, $1, $2, $3); } // has been there
+    | HAVE      ADV_HAVE_TARGET { $$ = MAKE_SYMBOL(ID_AUX_V, 2, $1, $2); }     // has quickly gone there
     ;
 
 CAUX_V:
-      CBE OPT_BE_TARGET { $$ = MAKE_SYMBOL(ID_CAUX_V, 2, $1, $2); }
+      CBE OPT_BE_TARGET { $$ = MAKE_SYMBOL(ID_CAUX_V, 2, $1, $2); } // be there!
     ;
 
 AUX_NOT_V:
-                       BE_NOT_OR_FREQ   OPT_BE_TARGET { $$ = MAKE_SYMBOL(ID_AUX_NOT_V, 2, $1, $2); }
-    | HAVE_NOT_OR_FREQ BEEN             OPT_BE_TARGET { $$ = MAKE_SYMBOL(ID_AUX_NOT_V, 3, $1, $2, $3); }
-    | HAVE_NOT_OR_FREQ                ADV_HAVE_TARGET { $$ = MAKE_SYMBOL(ID_AUX_NOT_V, 2, $1, $2); }
+                       BE_NOT_OR_FREQ   OPT_BE_TARGET { $$ = MAKE_SYMBOL(ID_AUX_NOT_V, 2, $1, $2); }     // is not there
+    | HAVE_NOT_OR_FREQ BEEN             OPT_BE_TARGET { $$ = MAKE_SYMBOL(ID_AUX_NOT_V, 3, $1, $2, $3); } // has not been there
+    | HAVE_NOT_OR_FREQ                ADV_HAVE_TARGET { $$ = MAKE_SYMBOL(ID_AUX_NOT_V, 2, $1, $2); }     // has not quickly gone there
     ;
 
 AUX_NP_V:
-              BE_NP   OPT_BE_TARGET { $$ = MAKE_SYMBOL(ID_AUX_NP_V, 2, $1, $2); }
-    | HAVE_NP BEEN    OPT_BE_TARGET { $$ = MAKE_SYMBOL(ID_AUX_NP_V, 3, $1, $2, $3); }
-    | HAVE_NP       ADV_HAVE_TARGET { $$ = MAKE_SYMBOL(ID_AUX_NP_V, 2, $1, $2); }
+              BE_NP   OPT_BE_TARGET { $$ = MAKE_SYMBOL(ID_AUX_NP_V, 2, $1, $2); }     // is he there?
+    | HAVE_NP BEEN    OPT_BE_TARGET { $$ = MAKE_SYMBOL(ID_AUX_NP_V, 3, $1, $2, $3); } // has he been there?
+    | HAVE_NP       ADV_HAVE_TARGET { $$ = MAKE_SYMBOL(ID_AUX_NP_V, 2, $1, $2); }     // has he quickly gone there?
     ;
 
 //=============================================================================
 // VERB
 
 V_NP:
-      V         { $$ = MAKE_SYMBOL(ID_V_NP, 1, $1); }
-    | V NP_LIST { $$ = MAKE_SYMBOL(ID_V_NP, 2, $1, $2); }
+      V         { $$ = MAKE_SYMBOL(ID_V_NP, 1, $1); }     // go
+    | V NP_LIST { $$ = MAKE_SYMBOL(ID_V_NP, 2, $1, $2); } // go there
     ;
 
 VPAST_NP:
-      VPAST         { $$ = MAKE_SYMBOL(ID_VPAST_NP, 1, $1); }
-    | VPAST NP_LIST { $$ = MAKE_SYMBOL(ID_VPAST_NP, 2, $1, $2); }
+      VPAST         { $$ = MAKE_SYMBOL(ID_VPAST_NP, 1, $1); }     // went
+    | VPAST NP_LIST { $$ = MAKE_SYMBOL(ID_VPAST_NP, 2, $1, $2); } // went there
     ;
 
 VGERUND_NP:
-      VGERUND               { $$ = MAKE_SYMBOL(ID_VGERUND_NP, 1, $1); }
-    | VGERUND NP_LIST       { $$ = MAKE_SYMBOL(ID_VGERUND_NP, 2, $1, $2); }
-    | BEING   OPT_BE_TARGET { $$ = MAKE_SYMBOL(ID_VGERUND_NP, 2, $1, $2); }
+      VGERUND               { $$ = MAKE_SYMBOL(ID_VGERUND_NP, 1, $1); }     // going
+    | VGERUND NP_LIST       { $$ = MAKE_SYMBOL(ID_VGERUND_NP, 2, $1, $2); } // going there
+    | BEING   OPT_BE_TARGET { $$ = MAKE_SYMBOL(ID_VGERUND_NP, 2, $1, $2); } // being there
     ;
 
 PREP_NP:
-      PREP NP_LIST { $$ = MAKE_SYMBOL(ID_PREP_NP, 2, $1, $2); } // NOTE: using NP_LIST here causes shift-reduce conflict because NP ==> PREP_NP ==> NP
+      PREP NP_LIST { $$ = MAKE_SYMBOL(ID_PREP_NP, 2, $1, $2); } // from there
+                                                                // NOTE: using NP_LIST here causes shift-reduce conflict because NP ==> PREP_NP ==> NP
                                                                 //       however, not having NP_LIST here makes parsing "from here and there.." impossible
     ;
 
@@ -436,168 +437,168 @@ PREP_NP:
 // TARGET (BE -- HAVE -- MODAL -- DO)
 
 BE_TARGET:
-      ADV_HAVE_TARGET { $$ = MAKE_SYMBOL(ID_BE_TARGET, 1, $1); }
+      ADV_HAVE_TARGET { $$ = MAKE_SYMBOL(ID_BE_TARGET, 1, $1); } // quickly gone there
     | NP_LIST         { $$ = MAKE_SYMBOL(ID_BE_TARGET, 1, $1); }
     | ADJ_LIST        { $$ = MAKE_SYMBOL(ID_BE_TARGET, 1, $1); }
     ;
 
 HAVE_TARGET:
-      VPASTPERF         { $$ = MAKE_SYMBOL(ID_HAVE_TARGET, 1, $1); }
-    | VPASTPERF NP_LIST { $$ = MAKE_SYMBOL(ID_HAVE_TARGET, 2, $1, $2); }
+      VPASTPERF         { $$ = MAKE_SYMBOL(ID_HAVE_TARGET, 1, $1); }     // gone
+    | VPASTPERF NP_LIST { $$ = MAKE_SYMBOL(ID_HAVE_TARGET, 2, $1, $2); } // gone there
     ;
 
 MODAL_TARGET:
-      DO_TARGET { $$ = MAKE_SYMBOL(ID_MODAL_TARGET, 1, $1); }
-    | AUX_V     { $$ = MAKE_SYMBOL(ID_MODAL_TARGET, 1, $1); }
+      DO_TARGET { $$ = MAKE_SYMBOL(ID_MODAL_TARGET, 1, $1); } // go there
+    | AUX_V     { $$ = MAKE_SYMBOL(ID_MODAL_TARGET, 1, $1); } // be there
     ;
 
 DO_TARGET:
-      ADV_V_NP { $$ = MAKE_SYMBOL(ID_DO_TARGET, 1, $1); }
-    | V_INFIN  { $$ = MAKE_SYMBOL(ID_DO_TARGET, 1, $1); }
+      ADV_V_NP { $$ = MAKE_SYMBOL(ID_DO_TARGET, 1, $1); } // quickly go there
+    | V_INFIN  { $$ = MAKE_SYMBOL(ID_DO_TARGET, 1, $1); } // like to go there
     ;
 
 OPT_BE_TARGET:
       /* empty */ { $$ = xl::node::SymbolNode::eol(); }
-    | BE_TARGET   { $$ = MAKE_SYMBOL(ID_OPT_BE_TARGET, 1, $1); }
+    | BE_TARGET   { $$ = MAKE_SYMBOL(ID_OPT_BE_TARGET, 1, $1); } // there
     ;
 
 FREQ_DO_TARGET:
-           DO_TARGET { $$ = MAKE_SYMBOL(ID_FREQ_DO_TARGET, 1, $1); }
-    | FREQ DO_TARGET { $$ = MAKE_SYMBOL(ID_FREQ_DO_TARGET, 2, $1, $2); }
+           DO_TARGET { $$ = MAKE_SYMBOL(ID_FREQ_DO_TARGET, 1, $1); }     // quickly go there
+    | FREQ DO_TARGET { $$ = MAKE_SYMBOL(ID_FREQ_DO_TARGET, 2, $1, $2); } // always quickly go there
     ;
 
 //=============================================================================
 // VERB (ADVERB)
 
 ADV_V_NP:
-                V_NP           { $$ = MAKE_SYMBOL(ID_ADV_V_NP, 1, $1); }
-    | ADV_MOD_V V_NP           { $$ = MAKE_SYMBOL(ID_ADV_V_NP, 2, $1, $2); }
-    |           V_NP ADV_MOD_V { $$ = MAKE_SYMBOL(ID_ADV_V_NP, 2, $1, $2); }
+                V_NP           { $$ = MAKE_SYMBOL(ID_ADV_V_NP, 1, $1); }     // go there
+    | ADV_MOD_V V_NP           { $$ = MAKE_SYMBOL(ID_ADV_V_NP, 2, $1, $2); } // quickly go there
+    |           V_NP ADV_MOD_V { $$ = MAKE_SYMBOL(ID_ADV_V_NP, 2, $1, $2); } // go there quickly
     ;
 
 ADV_VPAST_NP:
-                VPAST_NP           { $$ = MAKE_SYMBOL(ID_ADV_VPAST_NP, 1, $1); }
-    | ADV_MOD_V VPAST_NP           { $$ = MAKE_SYMBOL(ID_ADV_VPAST_NP, 2, $1, $2); }
-    |           VPAST_NP ADV_MOD_V { $$ = MAKE_SYMBOL(ID_ADV_VPAST_NP, 2, $1, $2); }
+                VPAST_NP           { $$ = MAKE_SYMBOL(ID_ADV_VPAST_NP, 1, $1); }     // went there
+    | ADV_MOD_V VPAST_NP           { $$ = MAKE_SYMBOL(ID_ADV_VPAST_NP, 2, $1, $2); } // quickly went there
+    |           VPAST_NP ADV_MOD_V { $$ = MAKE_SYMBOL(ID_ADV_VPAST_NP, 2, $1, $2); } // went there quickly
     ;
 
 ADV_VGERUND_NP:
-                          VGERUND_NP                      { $$ = MAKE_SYMBOL(ID_ADV_VGERUND_NP, 1, $1); }
-    | ADV_MOD_VGERUND_PRE VGERUND_NP                      { $$ = MAKE_SYMBOL(ID_ADV_VGERUND_NP, 2, $1, $2); }
-    |                     VGERUND_NP ADV_MOD_VGERUND_POST { $$ = MAKE_SYMBOL(ID_ADV_VGERUND_NP, 2, $1, $2); }
+                          VGERUND_NP                      { $$ = MAKE_SYMBOL(ID_ADV_VGERUND_NP, 1, $1); }     // going there
+    | ADV_MOD_VGERUND_PRE VGERUND_NP                      { $$ = MAKE_SYMBOL(ID_ADV_VGERUND_NP, 2, $1, $2); } // quickly going there
+    |                     VGERUND_NP ADV_MOD_VGERUND_POST { $$ = MAKE_SYMBOL(ID_ADV_VGERUND_NP, 2, $1, $2); } // going there quickly
     ;
 
 ADV_HAVE_TARGET:
-                HAVE_TARGET           { $$ = MAKE_SYMBOL(ID_ADV_HAVE_TARGET, 1, $1); }
-    | ADV_MOD_V HAVE_TARGET           { $$ = MAKE_SYMBOL(ID_ADV_HAVE_TARGET, 2, $1, $2); }
-    |           HAVE_TARGET ADV_MOD_V { $$ = MAKE_SYMBOL(ID_ADV_HAVE_TARGET, 2, $1, $2); }
+                HAVE_TARGET           { $$ = MAKE_SYMBOL(ID_ADV_HAVE_TARGET, 1, $1); }     // gone there
+    | ADV_MOD_V HAVE_TARGET           { $$ = MAKE_SYMBOL(ID_ADV_HAVE_TARGET, 2, $1, $2); } // quickly gone there
+    |           HAVE_TARGET ADV_MOD_V { $$ = MAKE_SYMBOL(ID_ADV_HAVE_TARGET, 2, $1, $2); } // gone there quickly
     ;
 
 //=============================================================================
 // INFINITIVE
 
 INFIN:
-      TO_NOT_OR_FREQ MODAL_TARGET { $$ = MAKE_SYMBOL(ID_INFIN, 2, $1, $2); }
+      TO_NOT_OR_FREQ MODAL_TARGET { $$ = MAKE_SYMBOL(ID_INFIN, 2, $1, $2); } // to go there
     ;
 
 V_INFIN:
-      V_MOD_INFIN INFIN { $$ = MAKE_SYMBOL(ID_V_INFIN, 2, $1, $2); }
+      V_MOD_INFIN INFIN { $$ = MAKE_SYMBOL(ID_V_INFIN, 2, $1, $2); } // have to go there
     ;
 
 //=============================================================================
 // ADJECTIVE -- ADVERB
 
 ADJ_N:
-               N { $$ = MAKE_SYMBOL(ID_ADJ_N, 1, $1); }
-    | ADJ_LIST N { $$ = MAKE_SYMBOL(ID_ADJ_N, 2, $1, $2); }
+               N { $$ = MAKE_SYMBOL(ID_ADJ_N, 1, $1); }     // apple
+    | ADJ_LIST N { $$ = MAKE_SYMBOL(ID_ADJ_N, 2, $1, $2); } // red apple
     ;
 
 ADV_ADJ:
-                  ADJ { $$ = MAKE_SYMBOL(ID_ADV_ADJ, 1, $1); }
-    | ADV_MOD_ADJ ADJ { $$ = MAKE_SYMBOL(ID_ADV_ADJ, 2, $1, $2); }
+                  ADJ { $$ = MAKE_SYMBOL(ID_ADV_ADJ, 1, $1); }     // red
+    | ADV_MOD_ADJ ADJ { $$ = MAKE_SYMBOL(ID_ADV_ADJ, 2, $1, $2); } // very red
     ;
 
 //=============================================================================
 // DEMONSTRATIVE -- ARTICLE/PREFIX-POSSESSIVE
 
 DET_ADJ_N:
-      DEM                     { $$ = MAKE_SYMBOL(ID_DET_ADJ_N, 1, $1); }
-    | DEM               ADJ_N { $$ = MAKE_SYMBOL(ID_DET_ADJ_N, 2, $1, $2); }
-    | ART_OR_PREFIXPOSS ADJ_N { $$ = MAKE_SYMBOL(ID_DET_ADJ_N, 2, $1, $2); }
+      DEM                     { $$ = MAKE_SYMBOL(ID_DET_ADJ_N, 1, $1); }     // this
+    | DEM               ADJ_N { $$ = MAKE_SYMBOL(ID_DET_ADJ_N, 2, $1, $2); } // this red apple
+    | ART_OR_PREFIXPOSS ADJ_N { $$ = MAKE_SYMBOL(ID_DET_ADJ_N, 2, $1, $2); } // my red apple
     ;
 
 //=============================================================================
 // BE -- HAVE -- MODAL -- DO (NOT)
 
 BE_NOT:
-      BE     { $$ = MAKE_SYMBOL(ID_BE_NOT, 1, $1); }
-    | BE NOT { $$ = MAKE_SYMBOL(ID_BE_NOT, 2, $1, $2); }
+      BE     { $$ = MAKE_SYMBOL(ID_BE_NOT, 1, $1); }     // is
+    | BE NOT { $$ = MAKE_SYMBOL(ID_BE_NOT, 2, $1, $2); } // is not
     ;
 
 HAVE_NOT:
-      HAVE     { $$ = MAKE_SYMBOL(ID_HAVE_NOT, 1, $1); }
-    | HAVE NOT { $$ = MAKE_SYMBOL(ID_HAVE_NOT, 2, $1, $2); }
+      HAVE     { $$ = MAKE_SYMBOL(ID_HAVE_NOT, 1, $1); }     // have
+    | HAVE NOT { $$ = MAKE_SYMBOL(ID_HAVE_NOT, 2, $1, $2); } // have not
     ;
 
 MODAL_NOT:
-      MODAL     { $$ = MAKE_SYMBOL(ID_MODAL_NOT, 1, $1); }
-    | MODAL NOT { $$ = MAKE_SYMBOL(ID_MODAL_NOT, 2, $1, $2); }
+      MODAL     { $$ = MAKE_SYMBOL(ID_MODAL_NOT, 1, $1); }     // can
+    | MODAL NOT { $$ = MAKE_SYMBOL(ID_MODAL_NOT, 2, $1, $2); } // can not
     ;
 
 DO_NOT:
-      DO     { $$ = MAKE_SYMBOL(ID_DO_NOT, 1, $1); }
-    | DO NOT { $$ = MAKE_SYMBOL(ID_DO_NOT, 2, $1, $2); }
+      DO     { $$ = MAKE_SYMBOL(ID_DO_NOT, 1, $1); }     // do
+    | DO NOT { $$ = MAKE_SYMBOL(ID_DO_NOT, 2, $1, $2); } // do not
     ;
 
 //=============================================================================
 // BE -- HAVE -- MODAL -- DO (NOT NOUN FREQ)
 
 BE_NP:
-      BE_NOT NP_LIST      { $$ = MAKE_SYMBOL(ID_BE_NP, 2, $1, $2); }
-    | BE_NOT NP_LIST FREQ { $$ = MAKE_SYMBOL(ID_BE_NP, 3, $1, $2, $3); }
+      BE_NOT NP_LIST      { $$ = MAKE_SYMBOL(ID_BE_NP, 2, $1, $2); }     // is he
+    | BE_NOT NP_LIST FREQ { $$ = MAKE_SYMBOL(ID_BE_NP, 3, $1, $2, $3); } // is he always
     ;
 
 HAVE_NP:
-      HAVE_NOT NP_LIST      { $$ = MAKE_SYMBOL(ID_HAVE_NP, 2, $1, $2); }
-    | HAVE_NOT NP_LIST FREQ { $$ = MAKE_SYMBOL(ID_HAVE_NP, 3, $1, $2, $3); }
+      HAVE_NOT NP_LIST      { $$ = MAKE_SYMBOL(ID_HAVE_NP, 2, $1, $2); }     // has he
+    | HAVE_NOT NP_LIST FREQ { $$ = MAKE_SYMBOL(ID_HAVE_NP, 3, $1, $2, $3); } // has he always
     ;
 
 MODAL_NP:
-      MODAL_NOT NP_LIST      { $$ = MAKE_SYMBOL(ID_MODAL_NP, 2, $1, $2); }
-    | MODAL_NOT NP_LIST FREQ { $$ = MAKE_SYMBOL(ID_MODAL_NP, 3, $1, $2, $3); }
+      MODAL_NOT NP_LIST      { $$ = MAKE_SYMBOL(ID_MODAL_NP, 2, $1, $2); }     // can he
+    | MODAL_NOT NP_LIST FREQ { $$ = MAKE_SYMBOL(ID_MODAL_NP, 3, $1, $2, $3); } // can he always
     ;
 
 DO_NP:
-      DO_NOT NP_LIST      { $$ = MAKE_SYMBOL(ID_DO_NP, 2, $1, $2); }
-    | DO_NOT NP_LIST FREQ { $$ = MAKE_SYMBOL(ID_DO_NP, 3, $1, $2, $3); }
+      DO_NOT NP_LIST      { $$ = MAKE_SYMBOL(ID_DO_NP, 2, $1, $2); }     // does he
+    | DO_NOT NP_LIST FREQ { $$ = MAKE_SYMBOL(ID_DO_NP, 3, $1, $2, $3); } // does he always
     ;
 
 //=============================================================================
 // BE -- HAVE -- MODAL -- DO -- TO (NOT OR FREQ)
 
 BE_NOT_OR_FREQ:
-      BE             { $$ = MAKE_SYMBOL(ID_BE_NOT_OR_FREQ, 1, $1); }
-    | BE NOT_OR_FREQ { $$ = MAKE_SYMBOL(ID_BE_NOT_OR_FREQ, 2, $1, $2); }
+      BE             { $$ = MAKE_SYMBOL(ID_BE_NOT_OR_FREQ, 1, $1); }     // is
+    | BE NOT_OR_FREQ { $$ = MAKE_SYMBOL(ID_BE_NOT_OR_FREQ, 2, $1, $2); } // is not
     ;
 
 HAVE_NOT_OR_FREQ:
-      HAVE             { $$ = MAKE_SYMBOL(ID_HAVE_NOT_OR_FREQ, 1, $1); }
-    | HAVE NOT_OR_FREQ { $$ = MAKE_SYMBOL(ID_HAVE_NOT_OR_FREQ, 2, $1, $2); }
+      HAVE             { $$ = MAKE_SYMBOL(ID_HAVE_NOT_OR_FREQ, 1, $1); }     // have
+    | HAVE NOT_OR_FREQ { $$ = MAKE_SYMBOL(ID_HAVE_NOT_OR_FREQ, 2, $1, $2); } // have not
     ;
 
 MODAL_NOT_OR_FREQ:
-      MODAL             { $$ = MAKE_SYMBOL(ID_MODAL_NOT_OR_FREQ, 1, $1); }
-    | MODAL NOT_OR_FREQ { $$ = MAKE_SYMBOL(ID_MODAL_NOT_OR_FREQ, 2, $1, $2); }
+      MODAL             { $$ = MAKE_SYMBOL(ID_MODAL_NOT_OR_FREQ, 1, $1); }     // can
+    | MODAL NOT_OR_FREQ { $$ = MAKE_SYMBOL(ID_MODAL_NOT_OR_FREQ, 2, $1, $2); } // can not
     ;
 
 DO_NOT_OR_FREQ:
-      DO             { $$ = MAKE_SYMBOL(ID_DO_NOT_OR_FREQ, 1, $1); }
-    | DO NOT_OR_FREQ { $$ = MAKE_SYMBOL(ID_DO_NOT_OR_FREQ, 2, $1, $2); }
+      DO             { $$ = MAKE_SYMBOL(ID_DO_NOT_OR_FREQ, 1, $1); }     // do
+    | DO NOT_OR_FREQ { $$ = MAKE_SYMBOL(ID_DO_NOT_OR_FREQ, 2, $1, $2); } // do not
     ;
 
 TO_NOT_OR_FREQ:
-      TO_MOD_V             { $$ = MAKE_SYMBOL(ID_TO_NOT_OR_FREQ, 1, $1); }
-    | TO_MOD_V NOT_OR_FREQ { $$ = MAKE_SYMBOL(ID_TO_NOT_OR_FREQ, 2, $1, $2); }
+      TO_MOD_V             { $$ = MAKE_SYMBOL(ID_TO_NOT_OR_FREQ, 1, $1); }     // to
+    | TO_MOD_V NOT_OR_FREQ { $$ = MAKE_SYMBOL(ID_TO_NOT_OR_FREQ, 2, $1, $2); } // to not
     ;
 
 //=============================================================================
@@ -659,45 +660,45 @@ POSS_LIST:
 // CONJUGATION
 
 CONJ_NP_NOT:
-      CONJ_NP             { $$ = MAKE_SYMBOL(ID_CONJ_NP_NOT, 1, $1); }
-    | CONJ_NP NOT_OR_FREQ { $$ = MAKE_SYMBOL(ID_CONJ_NP_NOT, 2, $1, $2); }
+      CONJ_NP             { $$ = MAKE_SYMBOL(ID_CONJ_NP_NOT, 1, $1); }     // and
+    | CONJ_NP NOT_OR_FREQ { $$ = MAKE_SYMBOL(ID_CONJ_NP_NOT, 2, $1, $2); } // and not
     ;
 
 CONJ_VP_NOT:
-      CONJ_VP             { $$ = MAKE_SYMBOL(ID_CONJ_VP_NOT, 1, $1); }
-    | CONJ_VP NOT_OR_FREQ { $$ = MAKE_SYMBOL(ID_CONJ_VP_NOT, 2, $1, $2); }
+      CONJ_VP             { $$ = MAKE_SYMBOL(ID_CONJ_VP_NOT, 1, $1); }     // and
+    | CONJ_VP NOT_OR_FREQ { $$ = MAKE_SYMBOL(ID_CONJ_VP_NOT, 2, $1, $2); } // and not
     ;
 
 CONJ_ADJ_NOT:
-      CONJ_ADJ             { $$ = MAKE_SYMBOL(ID_CONJ_ADJ_NOT, 1, $1); }
-    | CONJ_ADJ NOT_OR_FREQ { $$ = MAKE_SYMBOL(ID_CONJ_ADJ_NOT, 2, $1, $2); }
+      CONJ_ADJ             { $$ = MAKE_SYMBOL(ID_CONJ_ADJ_NOT, 1, $1); }     // and
+    | CONJ_ADJ NOT_OR_FREQ { $$ = MAKE_SYMBOL(ID_CONJ_ADJ_NOT, 2, $1, $2); } // and not
     ;
 
 CONJ_PREP_NOT:
-      CONJ_PREP             { $$ = MAKE_SYMBOL(ID_CONJ_PREP_NOT, 1, $1); }
-    | CONJ_PREP NOT_OR_FREQ { $$ = MAKE_SYMBOL(ID_CONJ_PREP_NOT, 2, $1, $2); }
+      CONJ_PREP             { $$ = MAKE_SYMBOL(ID_CONJ_PREP_NOT, 1, $1); }     // and
+    | CONJ_PREP NOT_OR_FREQ { $$ = MAKE_SYMBOL(ID_CONJ_PREP_NOT, 2, $1, $2); } // and not
     ;
 
 //=============================================================================
 // WH-PRONOUN
 
 WHPRON:
-      WHWORD          { $$ = MAKE_SYMBOL(ID_WHPRON, 1, $1); }
-    | WHWORD_MOD_THAT { $$ = MAKE_SYMBOL(ID_WHPRON, 1, $1); }
+      WHWORD          { $$ = MAKE_SYMBOL(ID_WHPRON, 1, $1); } // who (pronoun)
+    | WHWORD_MOD_THAT { $$ = MAKE_SYMBOL(ID_WHPRON, 1, $1); } // who (pronoun)
     ;
 
 //=============================================================================
  /* NOT-OR-FREQ -- EOS */
 
 NOT_OR_FREQ:
-      NOT      { $$ = MAKE_SYMBOL(ID_NOT_OR_FREQ, 1, $1); }
-    | NOT FREQ { $$ = MAKE_SYMBOL(ID_NOT_OR_FREQ, 2, $1, $2); }
-    |     FREQ { $$ = MAKE_SYMBOL(ID_NOT_OR_FREQ, 1, $1); }
+      NOT      { $$ = MAKE_SYMBOL(ID_NOT_OR_FREQ, 1, $1); }     // not
+    | NOT FREQ { $$ = MAKE_SYMBOL(ID_NOT_OR_FREQ, 2, $1, $2); } // not always
+    |     FREQ { $$ = MAKE_SYMBOL(ID_NOT_OR_FREQ, 1, $1); }     // always
     ;
 
 EOS:
-      TOO      { $$ = MAKE_SYMBOL(ID_EOS, 1, $1); }
-    | FREQ_EOS { $$ = MAKE_SYMBOL(ID_EOS, 1, $1); }
+      TOO      { $$ = MAKE_SYMBOL(ID_EOS, 1, $1); } // too
+    | FREQ_EOS { $$ = MAKE_SYMBOL(ID_EOS, 1, $1); } // always
     ;
 
 //=========
@@ -835,11 +836,11 @@ CONJ_PREP:
 // WH-WORD
 
 WHWORD:
-      ID_WHWORD { $$ = MAKE_TERM(ID_WHWORD, $1); }
+      ID_WHWORD { $$ = MAKE_TERM(ID_WHWORD, $1); } // who
     ;
 
 WHWORD_MOD_THAT:
-      ID_WHWORD_MOD_THAT { $$ = MAKE_TERM(ID_WHWORD_MOD_THAT, $1); }
+      ID_WHWORD_MOD_THAT { $$ = MAKE_TERM(ID_WHWORD_MOD_THAT, $1); } // that
     ;
 
 //=============================================================================
@@ -1025,7 +1026,7 @@ struct pos_path_ast_tuple_t
           m_path_index(path_index) {}
 };
 
-bool print_node(const xl::node::NodeIdentIFace* node)
+bool filter_node(const xl::node::NodeIdentIFace* node)
 {
     if(node->type() == xl::node::NodeIdentIFace::SYMBOL) {
         std::cout << node->name() << std::endl;
@@ -1082,7 +1083,7 @@ bool import_ast(options_t             &options,
             pos_path_ast_tuple->m_ast = NULL;
             return false;
         }
-        //xl::mvc::MVCView::annotate_tree(_ast, print_node);
+        //xl::mvc::MVCView::annotate_tree(_ast, filter_node);
         pos_path_ast_tuple->m_ast = _ast;
     }
     return true;

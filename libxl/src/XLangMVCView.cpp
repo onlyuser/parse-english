@@ -40,61 +40,68 @@
 
 namespace xl { namespace mvc {
 
-void MVCView::annotate_tree(
-        const node::NodeIdentIFace*      _node,
-        visitor::Filterable::filter_cb_t filter_cb)
+void MVCView::annotate_tree(const node::NodeIdentIFace*            _node,
+                                  visitor::Filterable::filter_cb_t filter_cb,
+                                  bool                             bfs)
 {
-#if 1
+    if(bfs) {
+        // BFS traversal
+        auto symbol = dynamic_cast<const node::SymbolNodeIFace*>(_node);
+        if(!symbol) {
+            return;
+        }
+        visitor::TreeAnnotatorBFS v_bfs;
+        if(filter_cb) {
+            v_bfs.set_filter_cb(filter_cb);
+        }
+        if(!v_bfs.iter_next_child(symbol)) {
+            return;
+        }
+        do {
+            v_bfs.dispatch_visit(symbol);
+        } while(v_bfs.iter_next_child());
+        return;
+    }
     // DFS traversal
     visitor::TreeAnnotator v;
-    if(filter_cb)
+    if(filter_cb) {
         v.set_filter_cb(filter_cb);
+    }
     v.dispatch_visit(_node);
-#else
-    // BFS traversal
-    auto symbol = dynamic_cast<const node::SymbolNodeIFace*>(_node);
-    if(!symbol)
-        return;
-    visitor::TreeAnnotatorBFS v_bfs;
-    if(filter_cb)
-        v_bfs.set_filter_cb(filter_cb);
-    if(v_bfs.visit_next_child(symbol))
-        while(v_bfs.visit_next_child());
-#endif
 }
 
-void MVCView::print_lisp(
-        const node::NodeIdentIFace*      _node,
-        bool                             indent,
-        visitor::Filterable::filter_cb_t filter_cb)
+void MVCView::print_lisp(const node::NodeIdentIFace*            _node,
+                               bool                             indent,
+                               visitor::Filterable::filter_cb_t filter_cb)
 {
     if(indent) {
         visitor::IndentedLispPrinter v;
-        if(filter_cb)
+        if(filter_cb) {
             v.set_filter_cb(filter_cb);
+        }
         v.dispatch_visit(_node);
     } else {
         visitor::LispPrinter v;
-        if(filter_cb)
+        if(filter_cb) {
             v.set_filter_cb(filter_cb);
+        }
         v.dispatch_visit(_node);
     }
 }
 
-void MVCView::print_xml(
-        const node::NodeIdentIFace*      _node,
-        visitor::Filterable::filter_cb_t filter_cb)
+void MVCView::print_xml(const node::NodeIdentIFace*            _node,
+                              visitor::Filterable::filter_cb_t filter_cb)
 {
     visitor::XMLPrinter v;
-    if(filter_cb)
+    if(filter_cb) {
         v.set_filter_cb(filter_cb);
+    }
     v.dispatch_visit(_node);
 }
 
-void MVCView::print_dot(
-        const node::NodeIdentIFace* _node,
-        bool                        horizontal,
-        bool                        print_digraph_block)
+void MVCView::print_dot(const node::NodeIdentIFace* _node,
+                              bool                  horizontal,
+                              bool                  print_digraph_block)
 {
     visitor::DotPrinter v(horizontal, print_digraph_block);
     v.dispatch_visit(_node);
@@ -111,10 +118,10 @@ void MVCView::print_dot_footer()
 }
 
 typedef const node::NodeIdentIFace nodeType;
-int ex (nodeType *p);
+int ex(nodeType *p);
 void MVCView::print_graph(nodeType* p)
 {
-    ex (p);
+    ex(p);
     std::cout << std::endl;
 }
 
@@ -171,7 +178,8 @@ void exNode
     uint32_t k;              /* child number */
     int che, chm;       /* end column and mid of children */
     int cs;             /* start column of children */
-    char word[20];      /* extended node text */
+    //char word[20];      /* extended node text */
+    char word[80];      /* extended node text */
 
     if(!p) return;
 

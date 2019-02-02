@@ -58,8 +58,9 @@ bool get_pos_options(std::string              word,
         pos_options->push_back("VP(CONJ)");
         pos_options->push_back("ADJ(CONJ)");
         pos_options->push_back("PREP(CONJ)");
-    } else if(word == "because" /*|| word == "so"*/) {
+    } else if(word == "because") {
         pos_options->push_back("CLAUSE(CONJ)");
+        pos_options->push_back("because");
     } else if(word == ",") {
         pos_options->push_back("CLAUSE(CONJ)");
         pos_options->push_back("NP(CONJ)");

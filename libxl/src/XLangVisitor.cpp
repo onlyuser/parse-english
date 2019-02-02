@@ -49,22 +49,20 @@ void Visitor::visit_null()
 }
 void Visitor::dispatch_visit(const node::NodeIdentIFace* unknown)
 {
-    if(!unknown)
-    {
-        if(m_allow_visit_null)
+    if(!unknown) {
+        if(m_allow_visit_null) {
             visit_null();
+        }
         return;
     }
     #ifdef DEBUG
-        if(is_printer())
-        {
+        if(is_printer()) {
             std::cout << "{depth=" << unknown->depth()
                       << ", height=" << unknown->height()
                       << ", bfs_index=" << unknown->bfs_index() << "}" << std::endl;
         }
     #endif
-    switch(unknown->type())
-    {
+    switch(unknown->type()) {
         case node::NodeIdentIFace::INT:
             visit(dynamic_cast<const node::TermNodeIFace<node::NodeIdentIFace::INT>*>(unknown));
             break;
@@ -91,28 +89,24 @@ void Visitor::dispatch_visit(const node::NodeIdentIFace* unknown)
 
 void VisitorDFS::visit(const node::SymbolNodeIFace* _node)
 {
-    if(m_filter_cb)
-    {
+    if(m_filter_cb) {
         if(_node->is_root() && !m_filter_cb(_node)) {
             return;
         }
-        const node::NodeIdentIFace* child = NULL;
-        if(next_child(_node, &child))
-        {
-            do
-            {
-                if(m_filter_cb(child) && child->type() == node::NodeIdentIFace::SYMBOL)
-                {
-                    VisitorDFS::visit(dynamic_cast<const node::SymbolNodeIFace*>(child));
-                    continue;
-                }
-                dispatch_visit(child);
-            } while(next_child(NULL, &child));
-        }
+    }
+    const node::NodeIdentIFace* child = NULL;
+    if(!iter_next_child(_node, &child)) {
         return;
     }
-    if(visit_next_child(_node))
-        while(visit_next_child());
+    do {
+        if(m_filter_cb) {
+            if(child->type() == node::NodeIdentIFace::SYMBOL && !m_filter_cb(child)) {
+                VisitorDFS::visit(dynamic_cast<const node::SymbolNodeIFace*>(child));
+                continue;
+            }
+        }
+        dispatch_visit(child);
+    } while(iter_next_child(NULL, &child));
 }
 
 void VisitorDFS::push_state(const node::SymbolNodeIFace* _node)
@@ -120,10 +114,9 @@ void VisitorDFS::push_state(const node::SymbolNodeIFace* _node)
     m_visit_state_stack.push(visit_state_t(_node, 0));
 }
 
-bool VisitorDFS::next_state()
+bool VisitorDFS::iter_next_state()
 {
-    if(end_of_visitation())
-    {
+    if(end_of_visitation()) {
         pop_state();
         return false;
     }
@@ -133,18 +126,21 @@ bool VisitorDFS::next_state()
 
 bool VisitorDFS::get_current_node(const node::NodeIdentIFace** _node) const
 {
-    if(end_of_visitation())
+    if(end_of_visitation()) {
         return false;
+    }
     const visit_state_t &visit_state = m_visit_state_stack.top();
-    if(_node)
+    if(_node) {
         *_node = (*visit_state.first)[visit_state.second];
+    }
     return true;
 }
 
 bool VisitorDFS::end_of_visitation() const
 {
-    if(m_visit_state_stack.empty())
+    if(m_visit_state_stack.empty()) {
         return true;
+    }
     return m_visit_state_stack.top().second == static_cast<int>(m_visit_state_stack.top().first->size());
 }
 
@@ -154,23 +150,21 @@ void VisitorBFS::push_state(const node::SymbolNodeIFace* _node)
     m_visit_state_stack.top().push(_node);
 }
 
-bool VisitorBFS::next_state()
+bool VisitorBFS::iter_next_state()
 {
-    if(end_of_visitation())
-    {
+    if(end_of_visitation()) {
         pop_state();
         return false;
     }
     visit_state_t &visit_state = m_visit_state_stack.top();
     const node::NodeIdentIFace* _node = NULL;
-    do
-    {
+    do {
         _node = visit_state.front();
-        if(_node && _node->type() == node::NodeIdentIFace::SYMBOL)
-        {
+        if(_node && _node->type() == node::NodeIdentIFace::SYMBOL) {
             auto symbol = dynamic_cast<const node::SymbolNodeIFace*>(_node);
-            for(int i = 0; i<static_cast<int>(symbol->size()); i++)
+            for(int i = 0; i<static_cast<int>(symbol->size()); i++) {
                 visit_state.push((*symbol)[i]);
+            }
         }
         visit_state.pop();
     } while(m_filter_cb && m_filter_cb(_node) && visit_state.size());
@@ -179,18 +173,21 @@ bool VisitorBFS::next_state()
 
 bool VisitorBFS::get_current_node(const node::NodeIdentIFace** _node) const
 {
-    if(end_of_visitation())
+    if(end_of_visitation()) {
         return false;
+    }
     const visit_state_t &visit_state = m_visit_state_stack.top();
-    if(_node)
+    if(_node) {
         *_node = visit_state.front();
+    }
     return true;
 }
 
 bool VisitorBFS::end_of_visitation() const
 {
-    if(m_visit_state_stack.empty())
+    if(m_visit_state_stack.empty()) {
         return true;
+    }
     return m_visit_state_stack.top().empty();
 }
 

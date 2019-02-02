@@ -66,24 +66,14 @@ public:
     {}
 
     // required
-    bool next_child(
-            const node::SymbolNodeIFace* _node = NULL, const node::NodeIdentIFace** ref_child = NULL)
+    bool iter_next_child(const node::SymbolNodeIFace* _node     = NULL,
+                         const node::NodeIdentIFace** ref_child = NULL)
     {
-        if(_node)
+        if(_node) {
             push_state(_node);
+        }
         get_current_node(ref_child);
-        return next_state();
-    }
-    bool visit_next_child(
-            const node::SymbolNodeIFace* _node = NULL, const node::NodeIdentIFace** ref_child = NULL)
-    {
-        const node::NodeIdentIFace* child = NULL;
-        if(!next_child(_node, &child))
-            return false;
-        dispatch_visit(child);
-        if(ref_child)
-            *ref_child = child;
-        return true;
+        return iter_next_state();
     }
 
     // optional
@@ -106,12 +96,13 @@ protected:
     virtual void push_state(const node::SymbolNodeIFace* _node) = 0;
     bool pop_state()
     {
-        if(m_visit_state_stack.empty())
+        if(m_visit_state_stack.empty()) {
             return false;
+        }
         m_visit_state_stack.pop();
         return true;
     }
-    virtual bool next_state() = 0;
+    virtual bool iter_next_state() = 0;
     virtual bool get_current_node(const node::NodeIdentIFace** _node) const = 0;
 };
 
@@ -123,7 +114,7 @@ public:
 
 private:
     void push_state(const node::SymbolNodeIFace* _node);
-    bool next_state();
+    bool iter_next_state();
     bool get_current_node(const node::NodeIdentIFace** _node) const;
     bool end_of_visitation() const;
 };
@@ -135,7 +126,7 @@ public:
 
 private:
     void push_state(const node::SymbolNodeIFace* _node);
-    bool next_state();
+    bool iter_next_state();
     bool get_current_node(const node::NodeIdentIFace** _node) const;
     bool end_of_visitation() const;
 };

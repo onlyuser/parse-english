@@ -350,10 +350,11 @@ QCLAUSE:
 // NOUN PART -- VERB PART
 
 NP:
-      POSS           { $$ = MAKE_SYMBOL(ID_NP, 1, $1); }     // the/my father
-    | ADV_VGERUND_NP { $$ = MAKE_SYMBOL(ID_NP, 1, $1); }     // quickly going there
-    | INFIN          { $$ = MAKE_SYMBOL(ID_NP, 1, $1); }     // to go there
-    | WHPRON VP      { $$ = MAKE_SYMBOL(ID_NP, 2, $1, $2); } // who (pronoun) was there
+      POSS           { $$ = MAKE_SYMBOL(ID_NP, 1, $1); }         // the/my father
+    | ADV_VGERUND_NP { $$ = MAKE_SYMBOL(ID_NP, 1, $1); }         // quickly going there
+    | INFIN          { $$ = MAKE_SYMBOL(ID_NP, 1, $1); }         // to go there
+    | WHPRON VP      { $$ = MAKE_SYMBOL(ID_NP, 2, $1, $2); }     // who (pronoun) was there
+    | WHPRON NP VP   { $$ = MAKE_SYMBOL(ID_NP, 3, $1, $2, $3); } // who (pronoun) he is
     | PREP_LIST      { $$ = MAKE_SYMBOL(ID_NP, 1, $1); }
     ;
 

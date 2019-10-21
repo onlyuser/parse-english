@@ -17,7 +17,6 @@
 
 #include "visitor/XLangVisitor.h" // visitor::Visitor
 #include "XLangString.h" // xl::escape
-#include <iostream> // std::cout
 
 //#define DEBUG
 
@@ -25,27 +24,27 @@ namespace xl { namespace visitor {
 
 void Visitor::visit(const node::TermNodeIFace<node::NodeIdentIFace::INT>* _node)
 {
-    std::cout << _node->value();
+    m_output_ss << _node->value();
 }
 void Visitor::visit(const node::TermNodeIFace<node::NodeIdentIFace::FLOAT>* _node)
 {
-    std::cout << _node->value();
+    m_output_ss << _node->value();
 }
 void Visitor::visit(const node::TermNodeIFace<node::NodeIdentIFace::STRING>* _node)
 {
-    std::cout << '\"' << xl::escape(*_node->value()) << '\"';
+    m_output_ss << '\"' << xl::escape(*_node->value()) << '\"';
 }
 void Visitor::visit(const node::TermNodeIFace<node::NodeIdentIFace::CHAR>* _node)
 {
-    std::cout << '\'' << xl::escape(_node->value()) << '\'';
+    m_output_ss << '\'' << xl::escape(_node->value()) << '\'';
 }
 void Visitor::visit(const node::TermNodeIFace<node::NodeIdentIFace::IDENT>* _node)
 {
-    std::cout << *_node->value();
+    m_output_ss << *_node->value();
 }
 void Visitor::visit_null()
 {
-    std::cout << "NULL";
+    m_output_ss << "NULL";
 }
 void Visitor::dispatch_visit(const node::NodeIdentIFace* unknown)
 {
@@ -57,9 +56,9 @@ void Visitor::dispatch_visit(const node::NodeIdentIFace* unknown)
     }
     #ifdef DEBUG
         if(is_printer()) {
-            std::cout << "{depth=" << unknown->depth()
-                      << ", height=" << unknown->height()
-                      << ", bfs_index=" << unknown->bfs_index() << "}" << std::endl;
+            m_output_ss << "{depth=" << unknown->depth()
+                        << ", height=" << unknown->height()
+                        << ", bfs_index=" << unknown->bfs_index() << "}" << std::endl;
         }
     #endif
     switch(unknown->type()) {
@@ -82,7 +81,7 @@ void Visitor::dispatch_visit(const node::NodeIdentIFace* unknown)
             visit(dynamic_cast<const node::SymbolNodeIFace*>(unknown));
             break;
         default:
-            std::cout << "unknown node type" << std::endl;
+            m_output_ss << "unknown node type" << std::endl;
             break;
     }
 }

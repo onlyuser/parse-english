@@ -29,6 +29,8 @@
 #include "XLangString.h" // xl::replace
 #include "XLangType.h" // uint32_t
 #include "TryAllParses.h" // gen_variations
+#include "visitor/XLangVisitor.h" // visitor::Visitor
+#include <Ontology.h> // NodeGatherer
 #include <stdio.h> // size_t
 #include <stdarg.h> // va_start
 #include <string.h> // strlen
@@ -40,6 +42,7 @@
 #include <iostream> // std::cout
 #include <stdlib.h> // EXIT_SUCCESS
 #include <getopt.h> // getopt_long
+#include <pthread.h> // pthread_t
 
 #define DEBUG
 
@@ -48,11 +51,17 @@
 #define ERROR_LEXER_ID_NOT_FOUND   "Missing lexer id handler. Did you forgot to register one?"
 #define ERROR_LEXER_NAME_NOT_FOUND "Missing lexer name handler. Did you forgot to register one?"
 
-std::stringstream _error_messages;
+#define NTHREADS 4
+pthread_t threads[NTHREADS];
+void* retvals[NTHREADS];
+pthread_mutex_t graph_mutex;
 
 // report error
 void yyerror(YYLTYPE* loc, ParserContext* pc, yyscan_t scanner, const char* s)
 {
+    if(s && *s != '\0') {
+        pc->m_error_messages << "ERROR: " << s << std::endl;
+    }
     if(loc) {
         int last_line_pos = 0;
         for(int i = pc->scanner_context().m_pos; i >= 0; i--) {
@@ -61,11 +70,11 @@ void yyerror(YYLTYPE* loc, ParserContext* pc, yyscan_t scanner, const char* s)
                 break;
             }
         }
-        _error_messages << &pc->scanner_context().m_buf[last_line_pos] << std::endl
-                        << std::string(strlen("ERROR: "), ' ') << std::string(loc->first_column-1, '-') << std::string(loc->last_column - loc->first_column + 1, '^') << std::endl
-                        << loc->first_line << ":c" << loc->first_column << " to " << loc->last_line << ":c" << loc->last_column << std::endl;
+        std::string indent = std::string(strlen("ERROR: "), ' ');
+        pc->m_error_messages << indent << &pc->scanner_context().m_buf[last_line_pos] << std::endl
+                             << indent << std::string(loc->first_column-1, '-') << std::string(loc->last_column - loc->first_column + 1, '^') << std::endl
+                             << indent << loc->first_line << ":c" << loc->first_column << " to " << loc->last_line << ":c" << loc->last_column << std::endl;
     }
-    _error_messages << s;
 }
 
 void yyerror(const char* s)
@@ -99,6 +108,7 @@ std::string id_to_name(uint32_t lexer_id)
         case ID_VP:                return "VP";
         case ID_QVP:               return "QVP";
         case ID_CVP:               return "CVP";
+        case ID_CMP:               return "CMP";
         //=================================================
         // AUXILIARY VERB
         case ID_AUX_V:             return "AUX_V";
@@ -192,11 +202,14 @@ uint32_t name_to_id(std::string name)
 static std::string expand_contractions(std::string &sentence)
 {
     std::string s = sentence;
+    s = xl::replace(s, "gonna",   "going to");
     s = xl::replace(s, "as well", "as-well");
     s = xl::replace(s, "can't",   "can not");
     s = xl::replace(s, "cannot",  "can not");
     s = xl::replace(s, "won't",   "will not");
+    s = xl::replace(s, "ain't",   "am not");
     s = xl::replace(s, "n't",     " not");
+    s = xl::replace(s, "n'",      "ng");
     s = xl::replace(s, "'ll",     " will");
     s = xl::replace(s, "'ve",     " have");
     s = xl::replace(s, "'m",      " am");
@@ -237,7 +250,7 @@ static std::string expand_contractions(std::string &sentence)
 
 // rules for internal nodes
 %type<symbol_value> S S_PUNC STMT QUERY COND CMD CLAUSE QCLAUSE
-                    NP POSS VP QVP CVP
+                    NP POSS VP QVP CVP CMP
                     AUX_V CAUX_V AUX_NOT_V AUX_NP_V
                         V_NP     VPAST_NP DET_ADJ_N     VGERUND_NP                 PREP_NP
                     ADV_V_NP ADV_VPAST_NP           ADV_VGERUND_NP ADV_HAVE_TARGET
@@ -254,7 +267,7 @@ static std::string expand_contractions(std::string &sentence)
 
 // IDs for internal nodes
 %nonassoc           ID_S ID_S_PUNC ID_STMT ID_QUERY ID_COND ID_CMD ID_CLAUSE ID_QCLAUSE
-                    ID_NP ID_POSS ID_VP ID_QVP ID_CVP
+                    ID_NP ID_POSS ID_VP ID_QVP ID_CVP ID_CMP
                     ID_AUX_V ID_CAUX_V ID_AUX_NOT_V ID_AUX_NP_V
                         ID_V_NP     ID_VPAST_NP ID_DET_ADJ_N     ID_VGERUND_NP                    ID_PREP_NP
                     ID_ADV_V_NP ID_ADV_VPAST_NP              ID_ADV_VGERUND_NP ID_ADV_HAVE_TARGET
@@ -274,22 +287,24 @@ static std::string expand_contractions(std::string &sentence)
 //=========
 
 // IDs for terminals
-%token<ident_value> ID_N ID_V ID_VPAST ID_VGERUND ID_VPASTPERF ID_V_MOD_INFIN ID_ADJ ID_ADV_MOD_ADJ ID_ADV_MOD_V ID_ADV_MOD_VGERUND_PRE ID_ADV_MOD_VGERUND_POST ID_PREP
-                    ID_DEM ID_ART_OR_PREFIXPOSS ID_SUFFIXPOSS
+%token<ident_value> ID_N ID_V ID_VPAST ID_VGERUND ID_GOING_MOD_INFIN ID_VPASTPERF ID_V_MOD_INFIN ID_ADJ ID_ADV_MOD_ADJ ID_ADV_MOD_V ID_ADV_MOD_VGERUND_PRE ID_ADV_MOD_VGERUND_POST ID_PREP
+                    ID_DEM ID_EVERY ID_NONE ID_ART_OR_PREFIXPOSS ID_SUFFIXPOSS
                     ID_BEING ID_BEEN
                     ID_BE ID_CBE ID_HAVE ID_MODAL ID_DO ID_TO_MOD_V
                     ID_CONJ_CLAUSE ID_CONJ_NP ID_CONJ_VP ID_CONJ_ADJ ID_CONJ_PREP
                     ID_WHWORD ID_WHWORD_MOD_THAT
+                    ID_CMPWORD ID_CMPWORD_EST ID_THAN ID_CMP_AS ID_CMP_LIKE ID_MOST ID_MORE
                     ID_IF ID_THEN ID_BECAUSE
                     ID_NOT ID_FREQ ID_FREQ_EOS ID_TOO ID_PUNC
 
 // rules for terminals
-%type<symbol_value> N V VPAST VGERUND VPASTPERF V_MOD_INFIN ADJ ADV_MOD_ADJ ADV_MOD_V ADV_MOD_VGERUND_PRE ADV_MOD_VGERUND_POST PREP
-                    DEM ART_OR_PREFIXPOSS SUFFIXPOSS
+%type<symbol_value> N V VPAST VGERUND GOING_MOD_INFIN VPASTPERF V_MOD_INFIN ADJ ADV_MOD_ADJ ADV_MOD_V ADV_MOD_VGERUND_PRE ADV_MOD_VGERUND_POST PREP
+                    DEM EVERY NONE ART_OR_PREFIXPOSS SUFFIXPOSS
                     BEING BEEN
                     BE CBE HAVE MODAL DO TO_MOD_V
                     CONJ_CLAUSE CONJ_NP CONJ_VP CONJ_ADJ CONJ_PREP
                     WHWORD WHWORD_MOD_THAT
+                    CMPWORD CMPWORD_EST THAN CMP_AS CMP_LIKE MOST MORE
                     IF THEN BECAUSE
                     NOT FREQ FREQ_EOS TOO PUNC
 
@@ -325,11 +340,11 @@ QUERY:
     ;
 
 COND:
-      IF      CLAUSE_LIST THEN        CLAUSE_LIST { $$ = MAKE_SYMBOL(ID_COND, 2, $2, $4); } // if you build it then he will come
-    |         CLAUSE_LIST IF          CLAUSE_LIST { $$ = MAKE_SYMBOL(ID_COND, 2, $1, $3); } // he will come if you build it
-    | BECAUSE CLAUSE_LIST CONJ_CLAUSE CLAUSE_LIST { $$ = MAKE_SYMBOL(ID_COND, 2, $2, $4); } // because you built it, he will come
-    |         CLAUSE_LIST BECAUSE     CLAUSE_LIST { $$ = MAKE_SYMBOL(ID_COND, 2, $1, $3); } // he will come because you built it
-    |         AUX_NP_V    CONJ_CLAUSE CLAUSE_LIST { $$ = MAKE_SYMBOL(ID_COND, 2, $1, $3); } // had you built it, he would have come 
+      IF      CLAUSE_LIST THEN        CLAUSE_LIST { $$ = MAKE_SYMBOL(ID_COND, 4, $1, $2, $3, $4); } // if you build it then he will come
+    |         CLAUSE_LIST IF          CLAUSE_LIST { $$ = MAKE_SYMBOL(ID_COND, 3, $1, $2, $3); }     // he will come if you build it
+    | BECAUSE CLAUSE_LIST CONJ_CLAUSE CLAUSE_LIST { $$ = MAKE_SYMBOL(ID_COND, 4, $1, $2, $3, $4); } // because you built it, he will come
+    |         CLAUSE_LIST BECAUSE     CLAUSE_LIST { $$ = MAKE_SYMBOL(ID_COND, 3, $1, $2, $3); }     // he will come because you built it
+    |         AUX_NP_V    CONJ_CLAUSE CLAUSE_LIST { $$ = MAKE_SYMBOL(ID_COND, 3, $1, $2, $3); }     // had you built it, he would have come 
     ;
 
 CMD:
@@ -337,8 +352,9 @@ CMD:
     ;
 
 CLAUSE:
-      NP_LIST VP_LIST { $$ = MAKE_SYMBOL(ID_CLAUSE, 2, $1, $2); } // he goes
-    | PREP_LIST       { $$ = MAKE_SYMBOL(ID_CLAUSE, 1, $1); }
+                            NP_LIST VP_LIST           { $$ = MAKE_SYMBOL(ID_CLAUSE, 2, $1, $2); }         // he goes
+    | PREP_LIST CONJ_CLAUSE NP_LIST VP_LIST           { $$ = MAKE_SYMBOL(ID_CLAUSE, 4, $1, $2, $3, $4); } // from there, he went
+    |                       NP_LIST VP_LIST PREP_LIST { $$ = MAKE_SYMBOL(ID_CLAUSE, 3, $1, $2, $3); }     //
     ;
 
 QCLAUSE:
@@ -355,7 +371,8 @@ NP:
     | INFIN          { $$ = MAKE_SYMBOL(ID_NP, 1, $1); }         // to go there
     | WHPRON VP      { $$ = MAKE_SYMBOL(ID_NP, 2, $1, $2); }     // who (pronoun) was there
     | WHPRON NP VP   { $$ = MAKE_SYMBOL(ID_NP, 3, $1, $2, $3); } // who (pronoun) he is
-    | PREP_LIST      { $$ = MAKE_SYMBOL(ID_NP, 1, $1); }
+    | PREP_LIST      { $$ = MAKE_SYMBOL(ID_NP, 1, $1); }         // from here and there
+    | CMP NP         { $$ = MAKE_SYMBOL(ID_NP, 2, $1, $2); }     // bigger than he
     ;
 
 POSS:
@@ -382,6 +399,13 @@ CVP:
       CAUX_V                        { $$ = MAKE_SYMBOL(ID_CVP, 1, $1); }     // be there!
     | DO_NOT_OR_FREQ      DO_TARGET { $$ = MAKE_SYMBOL(ID_CVP, 2, $1, $2); } // do go there!
     |                FREQ_DO_TARGET { $$ = MAKE_SYMBOL(ID_CVP, 1, $1); }     // always go there!
+    ;
+
+CMP:
+      CMPWORD THAN      { $$ = MAKE_SYMBOL(ID_CMP, 2, $1, $2); }     // bigger than
+    | MORE ADJ THAN     { $$ = MAKE_SYMBOL(ID_CMP, 3, $1, $2, $3); } // more big than
+    | CMP_AS ADJ CMP_AS { $$ = MAKE_SYMBOL(ID_CMP, 3, $1, $2, $3); } // as big as
+    | ADJ CMP_LIKE      { $$ = MAKE_SYMBOL(ID_CMP, 2, $1, $2); }     // big like
     ;
 
 //=============================================================================
@@ -413,19 +437,22 @@ AUX_NP_V:
 // VERB
 
 V_NP:
-      V         { $$ = MAKE_SYMBOL(ID_V_NP, 1, $1); }     // go
-    | V NP_LIST { $$ = MAKE_SYMBOL(ID_V_NP, 2, $1, $2); } // go there
+      V            { $$ = MAKE_SYMBOL(ID_V_NP, 1, $1); }         // go
+    | V NP_LIST    { $$ = MAKE_SYMBOL(ID_V_NP, 2, $1, $2); }     // go there
+    | V NP      NP { $$ = MAKE_SYMBOL(ID_V_NP, 3, $1, $2, $3); } // give him it
     ;
 
 VPAST_NP:
-      VPAST         { $$ = MAKE_SYMBOL(ID_VPAST_NP, 1, $1); }     // went
-    | VPAST NP_LIST { $$ = MAKE_SYMBOL(ID_VPAST_NP, 2, $1, $2); } // went there
+      VPAST            { $$ = MAKE_SYMBOL(ID_VPAST_NP, 1, $1); }         // went
+    | VPAST NP_LIST    { $$ = MAKE_SYMBOL(ID_VPAST_NP, 2, $1, $2); }     // went there
+    | VPAST NP      NP { $$ = MAKE_SYMBOL(ID_VPAST_NP, 3, $1, $2, $3); } // gave him it
     ;
 
 VGERUND_NP:
-      VGERUND               { $$ = MAKE_SYMBOL(ID_VGERUND_NP, 1, $1); }     // going
-    | VGERUND NP_LIST       { $$ = MAKE_SYMBOL(ID_VGERUND_NP, 2, $1, $2); } // going there
-    | BEING   OPT_BE_TARGET { $$ = MAKE_SYMBOL(ID_VGERUND_NP, 2, $1, $2); } // being there
+      VGERUND                  { $$ = MAKE_SYMBOL(ID_VGERUND_NP, 1, $1); }         // going
+    | VGERUND NP_LIST          { $$ = MAKE_SYMBOL(ID_VGERUND_NP, 2, $1, $2); }     // going there
+    | VGERUND NP            NP { $$ = MAKE_SYMBOL(ID_VGERUND_NP, 3, $1, $2, $3); } // giving him it
+    | BEING   OPT_BE_TARGET    { $$ = MAKE_SYMBOL(ID_VGERUND_NP, 2, $1, $2); }     // being there
     ;
 
 PREP_NP:
@@ -438,9 +465,11 @@ PREP_NP:
 // TARGET (BE -- HAVE -- MODAL -- DO)
 
 BE_TARGET:
-      ADV_HAVE_TARGET { $$ = MAKE_SYMBOL(ID_BE_TARGET, 1, $1); } // quickly gone there
-    | NP_LIST         { $$ = MAKE_SYMBOL(ID_BE_TARGET, 1, $1); }
-    | ADJ_LIST        { $$ = MAKE_SYMBOL(ID_BE_TARGET, 1, $1); }
+      ADV_HAVE_TARGET       { $$ = MAKE_SYMBOL(ID_BE_TARGET, 1, $1); }     // quickly gone there
+    | GOING_MOD_INFIN INFIN { $$ = MAKE_SYMBOL(ID_BE_TARGET, 2, $1, $2); } // going to go there
+    | NP_LIST               { $$ = MAKE_SYMBOL(ID_BE_TARGET, 1, $1); }
+    | ADJ_LIST              { $$ = MAKE_SYMBOL(ID_BE_TARGET, 1, $1); }
+    | CMPWORD               { $$ = MAKE_SYMBOL(ID_BE_TARGET, 1, $1); }     // bigger
     ;
 
 HAVE_TARGET:
@@ -523,9 +552,15 @@ ADV_ADJ:
 // DEMONSTRATIVE -- ARTICLE/PREFIX-POSSESSIVE
 
 DET_ADJ_N:
-      DEM                     { $$ = MAKE_SYMBOL(ID_DET_ADJ_N, 1, $1); }     // this
-    | DEM               ADJ_N { $$ = MAKE_SYMBOL(ID_DET_ADJ_N, 2, $1, $2); } // this red apple
-    | ART_OR_PREFIXPOSS ADJ_N { $$ = MAKE_SYMBOL(ID_DET_ADJ_N, 2, $1, $2); } // my red apple
+      DEM                                 { $$ = MAKE_SYMBOL(ID_DET_ADJ_N, 1, $1); }             // this
+    | DEM                           ADJ_N { $$ = MAKE_SYMBOL(ID_DET_ADJ_N, 2, $1, $2); }         // this red apple
+    | NONE                                { $$ = MAKE_SYMBOL(ID_DET_ADJ_N, 1, $1); }             // none
+    | EVERY                         ADJ_N { $$ = MAKE_SYMBOL(ID_DET_ADJ_N, 2, $1, $2); }         // every red apple
+    | ART_OR_PREFIXPOSS             ADJ_N { $$ = MAKE_SYMBOL(ID_DET_ADJ_N, 2, $1, $2); }         // the red apple
+    | ART_OR_PREFIXPOSS CMPWORD_EST       { $$ = MAKE_SYMBOL(ID_DET_ADJ_N, 2, $1, $2); }         // the best
+    | ART_OR_PREFIXPOSS CMPWORD_EST     N { $$ = MAKE_SYMBOL(ID_DET_ADJ_N, 3, $1, $2, $3); }     // the best thing
+    | ART_OR_PREFIXPOSS MOST ADJ          { $$ = MAKE_SYMBOL(ID_DET_ADJ_N, 3, $1, $2, $3); }     // the most red
+    | ART_OR_PREFIXPOSS MOST ADJ        N { $$ = MAKE_SYMBOL(ID_DET_ADJ_N, 4, $1, $2, $3, $4); } // the most red apple
     ;
 
 //=============================================================================
@@ -612,31 +647,26 @@ S_LIST:
 
 CLAUSE_LIST:
                               CLAUSE { $$ = MAKE_SYMBOL(ID_CLAUSE_LIST, 1, $1); }
-    | CLAUSE_LIST             CLAUSE { $$ = MAKE_SYMBOL(ID_CLAUSE_LIST, 2, $1, $2); }
     | CLAUSE_LIST CONJ_CLAUSE CLAUSE { $$ = MAKE_SYMBOL(ID_CLAUSE_LIST, 3, $1, $2, $3); }
     ;
 
 QCLAUSE_LIST:
                                QCLAUSE { $$ = MAKE_SYMBOL(ID_QCLAUSE_LIST, 1, $1); }
-    | QCLAUSE_LIST             QCLAUSE { $$ = MAKE_SYMBOL(ID_QCLAUSE_LIST, 2, $1, $2); }
     | QCLAUSE_LIST CONJ_CLAUSE QCLAUSE { $$ = MAKE_SYMBOL(ID_QCLAUSE_LIST, 3, $1, $2, $3); }
     ;
 
 CVP_LIST:
                            CVP { $$ = MAKE_SYMBOL(ID_CVP_LIST, 1, $1); }
-    | CVP_LIST             CVP { $$ = MAKE_SYMBOL(ID_CVP_LIST, 2, $1, $2); }
     | CVP_LIST CONJ_CLAUSE CVP { $$ = MAKE_SYMBOL(ID_CVP_LIST, 3, $1, $2, $3); }
     ;
 
 NP_LIST:
                           NP { $$ = MAKE_SYMBOL(ID_NP_LIST, 1, $1); }
-    | NP_LIST             NP { $$ = MAKE_SYMBOL(ID_NP_LIST, 2, $1, $2); }
     | NP_LIST CONJ_NP_NOT NP { $$ = MAKE_SYMBOL(ID_NP_LIST, 3, $1, $2, $3); }
     ;
 
 VP_LIST:
                           VP { $$ = MAKE_SYMBOL(ID_VP_LIST, 1, $1); }
-    | VP_LIST             VP { $$ = MAKE_SYMBOL(ID_VP_LIST, 2, $1, $2); }
     | VP_LIST CONJ_VP_NOT VP { $$ = MAKE_SYMBOL(ID_VP_LIST, 3, $1, $2, $3); }
     ;
 
@@ -648,7 +678,6 @@ ADJ_LIST:
 
 PREP_LIST:
                               PREP_NP { $$ = MAKE_SYMBOL(ID_PREP_LIST, 1, $1); }
-    | PREP_LIST               PREP_NP { $$ = MAKE_SYMBOL(ID_PREP_LIST, 2, $1, $2); }
     | PREP_LIST CONJ_PREP_NOT PREP_NP { $$ = MAKE_SYMBOL(ID_PREP_LIST, 3, $1, $2, $3); }
     ;
 
@@ -725,6 +754,10 @@ VGERUND:
       ID_VGERUND { $$ = MAKE_TERM(ID_VGERUND, $1); }
     ;
 
+GOING_MOD_INFIN:
+      ID_GOING_MOD_INFIN { $$ = MAKE_TERM(ID_GOING_MOD_INFIN, $1); }
+    ;
+
 VPASTPERF:
       ID_VPASTPERF { $$ = MAKE_TERM(ID_VPASTPERF, $1); }
     ;
@@ -762,6 +795,14 @@ PREP:
 
 DEM:
       ID_DEM { $$ = MAKE_TERM(ID_DEM, $1); }
+    ;
+
+EVERY:
+      ID_EVERY { $$ = MAKE_TERM(ID_EVERY, $1); }
+    ;
+
+NONE:
+      ID_NONE { $$ = MAKE_TERM(ID_NONE, $1); }
     ;
 
 ART_OR_PREFIXPOSS:
@@ -845,6 +886,37 @@ WHWORD_MOD_THAT:
     ;
 
 //=============================================================================
+// CMP-WORD
+
+CMPWORD:
+      ID_CMPWORD { $$ = MAKE_TERM(ID_CMPWORD, $1); } // bigger
+    ;
+
+CMPWORD_EST:
+      ID_CMPWORD_EST { $$ = MAKE_TERM(ID_CMPWORD_EST, $1); } // biggest
+    ;
+
+THAN:
+      ID_THAN { $$ = MAKE_TERM(ID_THAN, $1); } // than
+    ;
+
+CMP_AS:
+      ID_CMP_AS { $$ = MAKE_TERM(ID_CMP_AS, $1); } // as
+    ;
+
+CMP_LIKE:
+      ID_CMP_LIKE { $$ = MAKE_TERM(ID_CMP_LIKE, $1); } // like
+    ;
+
+MOST:
+      ID_MOST { $$ = MAKE_TERM(ID_MOST, $1); } // most
+    ;
+
+MORE:
+      ID_MORE { $$ = MAKE_TERM(ID_MORE, $1); } // more
+    ;
+
+//=============================================================================
 // COND
 
 IF:
@@ -915,7 +987,8 @@ uint32_t quick_lex(const char* s)
 
 xl::node::NodeIdentIFace* make_ast(xl::Allocator         &alloc,
                                    const char*            s,
-                                   std::vector<uint32_t> &pos_lexer_id_path)
+                                   std::vector<uint32_t> &pos_lexer_id_path,
+                                   std::stringstream     &error_messages)
 {
     ParserContext parser_context(alloc, s);
     parser_context.scanner_context().m_pos_lexer_id_path = &pos_lexer_id_path;
@@ -924,7 +997,8 @@ xl::node::NodeIdentIFace* make_ast(xl::Allocator         &alloc,
     yyset_extra(&parser_context, scanner);
     int error_code = yyparse(&parser_context, scanner); // parser entry point
     yylex_destroy(scanner);
-    return (!error_code && _error_messages.str().empty()) ? parser_context.tree_context().root() : NULL;
+    error_messages << parser_context.m_error_messages.str();
+    return (!error_code && parser_context.m_error_messages.str().empty()) ? parser_context.tree_context().root() : NULL;
 }
 
 void display_usage(bool verbose)
@@ -934,16 +1008,19 @@ void display_usage(bool verbose)
         std::cout << "Parses input and prints a syntax tree to standard out" << std::endl
                   << std::endl
                   << "Input control:" << std::endl
-                  << "  -i, --in-xml FILENAME (de-serialize from xml)" << std::endl
                   << "  -e, --expr EXPRESSION" << std::endl
                   << std::endl
                   << "Output control:" << std::endl
                   << "  -l, --lisp" << std::endl
-                  << "  -x, --xml" << std::endl
                   << "  -g, --graph" << std::endl
                   << "  -d, --dot" << std::endl
+                  << "  -x, --extract" << std::endl
+                  << "  -q, --quiet" << std::endl
                   << "  -m, --memory" << std::endl
-                  << "  -h, --help" << std::endl;
+                  << "  -h, --help" << std::endl
+                  << std::endl
+                  << "Example:" << std::endl
+                  << "  ./parse-english -e \"the quick brown fox jumps over the lazy dog\" -d | dot -Tpng > qwe.png; xdg-open qwe.png" << std::endl;
         return;
     }
     std::cout << "Try `parse-english --help\' for more information." << std::endl;
@@ -955,20 +1032,25 @@ struct options_t
     {
         MODE_NONE,
         MODE_LISP,
-        MODE_XML,
         MODE_GRAPH,
         MODE_DOT,
+        MODE_EXTRACT,
         MODE_HELP
     } mode_e;
 
     mode_e      mode;
-    std::string in_xml;
     std::string expr;
     bool        dump_memory;
+    bool        quiet;
     bool        indent;
+    bool        serial;
 
     options_t()
-        : mode(MODE_NONE), dump_memory(false), indent(false)
+        : mode(MODE_NONE),
+          dump_memory(false),
+          quiet(false),
+          indent(false),
+          serial(false)
     {}
 };
 
@@ -979,28 +1061,30 @@ bool extract_options_from_args(options_t* options, int argc, char** argv)
     }
     int opt = 0;
     int longIndex = 0;
-    static const char *optString = "i:e:lxgdmnh?";
-    static const struct option longOpts[] = { { "in-xml", required_argument, NULL, 'i' },
-                                              { "expr",   required_argument, NULL, 'e' },
-                                              { "lisp",   no_argument,       NULL, 'l' },
-                                              { "xml",    no_argument,       NULL, 'x' },
-                                              { "graph",  no_argument,       NULL, 'g' },
-                                              { "dot",    no_argument,       NULL, 'd' },
-                                              { "memory", no_argument,       NULL, 'm' },
-                                              { "indent", no_argument,       NULL, 'n' },
-                                              { "help",   no_argument,       NULL, 'h' },
-                                              { NULL,     no_argument,       NULL, 0   } };
+    static const char *optString = "e:lgdxqmnsh?";
+    static const struct option longOpts[] = { { "expr",    required_argument, NULL, 'e' },
+                                              { "lisp",    no_argument,       NULL, 'l' },
+                                              { "graph",   no_argument,       NULL, 'g' },
+                                              { "dot",     no_argument,       NULL, 'd' },
+                                              { "extract", no_argument,       NULL, 'x' },
+                                              { "quiet",   no_argument,       NULL, 'q' },
+                                              { "memory",  no_argument,       NULL, 'm' },
+                                              { "indent",  no_argument,       NULL, 'n' },
+                                              { "serial",  no_argument,       NULL, 's' },
+                                              { "help",    no_argument,       NULL, 'h' },
+                                              { NULL,      no_argument,       NULL, 0   } };
     opt = getopt_long(argc, argv, optString, longOpts, &longIndex);
     while(opt != -1) {
         switch(opt) {
-            case 'i': options->in_xml = optarg; break;
             case 'e': options->expr = optarg; break;
             case 'l': options->mode = options_t::MODE_LISP; break;
-            case 'x': options->mode = options_t::MODE_XML; break;
             case 'g': options->mode = options_t::MODE_GRAPH; break;
             case 'd': options->mode = options_t::MODE_DOT; break;
+            case 'x': options->mode = options_t::MODE_EXTRACT; break;
+            case 'q': options->quiet = true; break;
             case 'm': options->dump_memory = true; break;
             case 'n': options->indent = true; break;
+            case 's': options->serial = true; break;
             case 'h':
             case '?': options->mode = options_t::MODE_HELP; break;
             case 0: // reserved
@@ -1027,6 +1111,28 @@ struct pos_path_ast_tuple_t
           m_path_index(path_index) {}
 };
 
+struct job_context_t
+{
+    options_t*           m_options;
+    pos_path_ast_tuple_t m_pos_path_ast_tuple;
+    std::stringstream*   m_shared_header;
+    std::stringstream*   m_shared_footer;
+    xl::Allocator        m_alloc;
+    std::stringstream    m_output;
+    std::stringstream    m_info_messages;
+    std::stringstream    m_error_messages;
+
+    job_context_t(options_t*           options,
+                  pos_path_ast_tuple_t pos_path_ast_tuple,
+                  std::stringstream*   shared_header = NULL,
+                  std::stringstream*   shared_footer = NULL)
+        : m_options(options),
+          m_pos_path_ast_tuple(pos_path_ast_tuple),
+          m_shared_header(shared_header),
+          m_shared_footer(shared_footer),
+          m_alloc(__FILE__) {}
+};
+
 bool filter_node(const xl::node::NodeIdentIFace* node)
 {
     if(node->type() == xl::node::NodeIdentIFace::SYMBOL) {
@@ -1041,76 +1147,134 @@ bool filter_node(const xl::node::NodeIdentIFace* node)
 
 bool import_ast(options_t             &options,
                 xl::Allocator         &alloc,
-                pos_path_ast_tuple_t*  pos_path_ast_tuple)
+                pos_path_ast_tuple_t*  pos_path_ast_tuple,
+                std::stringstream     &info_messages,
+                std::stringstream     &error_messages)
 {
     if(!pos_path_ast_tuple) {
         return false;
     }
-    if(options.in_xml.size()) {
-#if 0 // NOTE: not supported
-        xl::node::NodeIdentIFace* _ast = xl::mvc::MVCModel::make_ast(new (PNEW(alloc, xl::, TreeContext)) xl::TreeContext(alloc), options.in_xml);
-        if(!_ast) {
-            std::cerr << "ERROR: de-serialize from xml fail!" << std::endl;
-            return false;
-        }
-        pos_path_ast_tuple->m_ast = _ast;
-#endif
-    } else {
-        std::vector<std::string> &pos_path = pos_path_ast_tuple->m_pos_path;
-        std::string pos_path_str;
-        for(std::vector<std::string>::iterator p = pos_path.begin(); p != pos_path.end(); p++) {
-            pos_path_str.append(*p + " ");
-        }
-#ifdef DEBUG
-        std::cerr << "INFO: import path #" << pos_path_ast_tuple->m_path_index << ": " << pos_path_str << std::endl;
-#endif
-        std::vector<uint32_t> pos_lexer_id_path;
-        for(std::vector<std::string>::const_iterator p = pos_path.begin(); p != pos_path.end(); p++) {
-            pos_lexer_id_path.push_back(name_to_id(*p));
-        }
-#if 1
-        // NOTE: doesn't depend on SCANNER_CONTEXT.current_lexer_id()
-        xl::node::NodeIdentIFace* _ast = make_ast(alloc, pos_path_str.c_str(), pos_lexer_id_path);
-#else
-        // NOTE: depends on SCANNER_CONTEXT.current_lexer_id()
-        xl::node::NodeIdentIFace* _ast = make_ast(alloc, options.expr.c_str(), pos_lexer_id_path);
-#endif
-        if(!_ast) {
-#ifdef DEBUG
-            std::cerr << "ERROR: " << _error_messages.str().c_str() << std::endl;
-#endif
-            _error_messages.str("");
-            _error_messages.clear();
-            pos_path_ast_tuple->m_ast = NULL;
-            return false;
-        }
-        //xl::mvc::MVCView::annotate_tree(_ast, filter_node);
-        pos_path_ast_tuple->m_ast = _ast;
+    std::vector<std::string> &pos_path = pos_path_ast_tuple->m_pos_path;
+    std::string pos_path_str;
+    for(std::vector<std::string>::iterator p = pos_path.begin(); p != pos_path.end(); p++) {
+        pos_path_str.append(*p + " ");
     }
+    info_messages << "INFO: Importing path #" << pos_path_ast_tuple->m_path_index << ": " << pos_path_str << std::endl;
+    std::vector<uint32_t> pos_lexer_id_path;
+    for(std::vector<std::string>::const_iterator p = pos_path.begin(); p != pos_path.end(); p++) {
+        pos_lexer_id_path.push_back(name_to_id(*p));
+    }
+#if 1
+    // NOTE: doesn't depend on SCANNER_CONTEXT.current_lexer_id()
+    xl::node::NodeIdentIFace* ast = make_ast(alloc, pos_path_str.c_str(), pos_lexer_id_path, error_messages);
+#else
+    // NOTE: depends on SCANNER_CONTEXT.current_lexer_id()
+    xl::node::NodeIdentIFace* ast = make_ast(alloc, options.expr.c_str(), pos_lexer_id_path, error_messages);
+#endif
+    if(!ast) {
+        pos_path_ast_tuple->m_ast = NULL;
+        error_messages << "ERROR: Failed to import path #" << pos_path_ast_tuple->m_path_index << std::endl;
+        return false;
+    }
+    pos_path_ast_tuple->m_ast = ast;
+    info_messages << "INFO: Successfully imported path #" << pos_path_ast_tuple->m_path_index << std::endl;
     return true;
 }
 
-void export_ast(options_t            &options,
-                pos_path_ast_tuple_t &pos_path_ast_tuple)
+bool export_ast(options_t            &options,
+                pos_path_ast_tuple_t &pos_path_ast_tuple,
+                std::stringstream    &output,
+                std::stringstream    &info_messages)
 {
     xl::node::NodeIdentIFace* ast = pos_path_ast_tuple.m_ast;
     if(!ast) {
-        return;
+        return false;
     }
     std::vector<std::string> &pos_path = pos_path_ast_tuple.m_pos_path;
     std::string pos_path_str;
     for(std::vector<std::string>::iterator p = pos_path.begin(); p != pos_path.end(); p++) {
         pos_path_str.append(*p + " ");
     }
-    std::cerr << "INFO: export path #" << pos_path_ast_tuple.m_path_index << ": " << pos_path_str << std::endl;
+    info_messages << "INFO: Exporting path #" << pos_path_ast_tuple.m_path_index << ": " << pos_path_str << std::endl;
     switch(options.mode) {
-        case options_t::MODE_LISP:  xl::mvc::MVCView::print_lisp(ast, options.indent); break;
-        case options_t::MODE_XML:   xl::mvc::MVCView::print_xml(ast); break;
-        case options_t::MODE_GRAPH: xl::mvc::MVCView::print_graph(ast); break;
-        case options_t::MODE_DOT:   xl::mvc::MVCView::print_dot(ast, false, false); break;
+        case options_t::MODE_LISP:  output << xl::mvc::MVCView::print_lisp(ast, options.indent); break;
+        case options_t::MODE_GRAPH: output << xl::mvc::MVCView::print_graph(ast); break;
+        case options_t::MODE_DOT:   output << xl::mvc::MVCView::print_dot(ast, false, false); break;
+        case options_t::MODE_EXTRACT:
+            {
+                output << std::endl;
+                std::vector<Sentence*> sentences = extract_ontology(ast);
+                if(sentences.size()) {
+                    output << "(SENTENCES" << std::endl;
+                    for(std::vector<Sentence*>::iterator p = sentences.begin(); p != sentences.end(); p++) {
+                        output << (*p)->to_string(1);
+                        delete *p;
+                    }
+                    output << ")" << std::endl << std::endl;
+                }
+                break;
+            }
         default:
             break;
     }
+    info_messages << "INFO: Successfully exported path #" << pos_path_ast_tuple.m_path_index << std::endl;
+    return true;
+}
+
+void* do_job(void* args)
+{
+    job_context_t* job = reinterpret_cast<job_context_t*>(args);
+    do {
+        try {
+            if(!import_ast(*job->m_options, job->m_alloc, &job->m_pos_path_ast_tuple,
+                                                           job->m_info_messages,
+                                                           job->m_error_messages))
+            {
+                break;
+            }
+        } catch(const char* s) {
+            job->m_error_messages << "ERROR: " << s << std::endl;
+            break;
+        }
+        pthread_mutex_lock(&graph_mutex);
+        if(job->m_options->mode == options_t::MODE_DOT) {
+            if(job->m_shared_header && (*job->m_shared_header).str().empty()) {
+                *job->m_shared_header << xl::mvc::MVCView::print_dot_header(false);
+            }
+            export_ast(*job->m_options, job->m_pos_path_ast_tuple,
+                                        job->m_output,
+                                        job->m_info_messages);
+            if(job->m_shared_footer && (*job->m_shared_footer).str().empty()) {
+                *job->m_shared_footer << xl::mvc::MVCView::print_dot_footer();
+            }
+        } else {
+            export_ast(*job->m_options, job->m_pos_path_ast_tuple,
+                                        job->m_output,
+                                        job->m_info_messages);
+        }
+        pthread_mutex_unlock(&graph_mutex);
+    } while(0);
+    if(job->m_options->dump_memory) {
+        job->m_info_messages << job->m_alloc.dump(std::string(1, '\t'));
+    }
+    return NULL;
+}
+
+void process_batch_jobs(std::vector<job_context_t*>& batch_jobs)
+{
+    pthread_mutex_init(&graph_mutex, NULL);
+    for(int i = 0; i < static_cast<int>(batch_jobs.size()); ++i) {
+        if(pthread_create(&threads[i], NULL, do_job, batch_jobs[i]) != 0) {
+            fprintf(stderr, "ERROR: Failed to create thread: %d\n", i);
+            break;
+        }
+    }
+    for(int j = 0; j < static_cast<int>(batch_jobs.size()); ++j) {
+        if(pthread_join(threads[j], &retvals[j]) != 0) {
+            fprintf(stderr, "ERROR: Failed to join thread: %d\n", j);
+        }
+    }
+    pthread_mutex_destroy(&graph_mutex);
 }
 
 bool apply_options(options_t &options)
@@ -1119,54 +1283,117 @@ bool apply_options(options_t &options)
         display_usage(true);
         return true;
     }
-    xl::Allocator alloc(__FILE__);
-    if(options.expr.empty() || options.in_xml.size()) {
-        std::cerr << "ERROR: mode not supported!" << std::endl;
-        if(options.dump_memory) {
-            alloc.dump(std::string(1, '\t'));
+    if(options.expr.empty()) {
+        if(!options.quiet) {
+            std::cerr << "ERROR: mode not supported!" << std::endl;
         }
         return false;
     }
     std::list<std::vector<std::string>> all_paths_str;
     std::string sentence = options.expr;
-#if 0
+// NOTE: just in case
+#if 1
     size_t n = sentence.length();
-    if(n && sentence[n - 1] != '.') {
+    if(n && sentence[n - 1] != '.' &&
+            sentence[n - 1] != '?' &&
+            sentence[n - 1] != '!')
+    {
         sentence += ".";
     }
 #endif
     options.expr = sentence = expand_contractions(sentence);
-    build_pos_paths_from_sentence(&all_paths_str, sentence);
+    std::stringstream shared_info_messages;
+    build_pos_paths_from_sentence(&all_paths_str,
+                                   sentence,
+                                   shared_info_messages);
+    if(!options.quiet) {
+        std::cerr << shared_info_messages.str();
+    }
+    std::stringstream shared_header, shared_footer;
     int path_index = 0;
-    std::list<pos_path_ast_tuple_t> pos_path_ast_tuples;
+    std::vector<job_context_t> all_jobs;
     for(std::list<std::vector<std::string>>::iterator p = all_paths_str.begin(); p != all_paths_str.end(); p++) {
-        pos_path_ast_tuples.push_back(pos_path_ast_tuple_t(*p, NULL, path_index));
+        all_jobs.push_back(job_context_t(&options,
+                                          pos_path_ast_tuple_t(*p, NULL, path_index),
+                                         &shared_header,
+                                         &shared_footer));
         path_index++;
     }
-    for(std::list<pos_path_ast_tuple_t>::iterator q = pos_path_ast_tuples.begin(); q != pos_path_ast_tuples.end(); q++) {
-        try {
-            if(!import_ast(options, alloc, &(*q))) {
-                continue;
-            }
-        } catch(const char* s) {
-            std::cerr << "ERROR: " << s << std::endl;
-            continue;
+    if(options.serial) {
+        {
+            std::string msg = "Step 3/4. Parse POS-paths in Serial:";
+            std::string bar = std::string(msg.length(), '=');
+            std::cerr << std::endl << bar << std::endl << msg << std::endl << bar << std::endl << std::endl;
         }
-    }
-    if(options.mode == options_t::MODE_DOT) {
-        xl::mvc::MVCView::print_dot_header(false);
-        for(std::list<pos_path_ast_tuple_t>::iterator r = pos_path_ast_tuples.begin(); r != pos_path_ast_tuples.end(); r++) {
-            export_ast(options, *r);
+
+        int path_index = 0;
+        for(std::vector<job_context_t>::iterator p = all_jobs.begin(); p != all_jobs.end(); p++) {
+            std::cerr << "INFO: Processing path #" << path_index << std::endl;
+            do_job(&(*p));
+            path_index++;
         }
-        xl::mvc::MVCView::print_dot_footer();
     } else {
-        for(std::list<pos_path_ast_tuple_t>::iterator r = pos_path_ast_tuples.begin(); r != pos_path_ast_tuples.end(); r++) {
-            export_ast(options, *r);
+        {
+            std::string msg = "Step 3/4. Parse POS-paths in Parallel:";
+            std::string bar = std::string(msg.length(), '=');
+            std::cerr << std::endl << bar << std::endl << msg << std::endl << bar << std::endl << std::endl;
+        }
+
+        size_t job_count = all_jobs.size();
+        int batch_count = std::max(job_count, job_count - 1) / NTHREADS + 1;
+        if(!options.quiet) {
+            std::cerr << "INFO: Processing " << all_jobs.size() << " jobs in " << batch_count << " batches.." << std::endl;
+        }
+        int batch_index = 1;
+        std::vector<job_context_t*> batch_jobs;
+        for(std::vector<job_context_t>::iterator q = all_jobs.begin(); q != all_jobs.end(); q++) {
+            batch_jobs.push_back(&(*q));
+            if(batch_jobs.size() >= NTHREADS) {
+                if(!options.quiet) {
+                    std::cerr << "INFO: Processing batch " << batch_index << "/" << batch_count << " with " << batch_jobs.size() << " jobs.." << std::endl;
+                }
+                process_batch_jobs(batch_jobs);
+                batch_jobs.clear();
+                batch_index++;
+            }
+        }
+        if(batch_jobs.size()) {
+            if(!options.quiet) {
+                std::cerr << "INFO: Processing batch " << batch_index << "/" << batch_count << " with " << batch_jobs.size() << " jobs.." << std::endl;
+            }
+            process_batch_jobs(batch_jobs);
+            batch_jobs.clear();
+            batch_index++;
+        }
+        if(!options.quiet) {
+            std::cerr << "INFO: Successfully processed " << all_jobs.size() << " jobs in " << batch_count << " batches.." << std::endl;
         }
     }
-    if(options.dump_memory) {
-        alloc.dump(std::string(1, '\t'));
+
+    {
+        std::string msg = "Step 4/4. Print ASTs:";
+        std::string bar = std::string(msg.length(), '=');
+        std::cerr << std::endl << bar << std::endl << msg << std::endl << bar << std::endl << std::endl;
     }
+
+    int successful_parse_count = 0;
+    std::cout << shared_header.str();
+    for(std::vector<job_context_t>::iterator r = all_jobs.begin(); r != all_jobs.end(); r++) {
+        if(!options.quiet) {
+            std::cerr << (*r).m_info_messages.str();
+            std::cerr << (*r).m_error_messages.str();
+        }
+        std::cout << (*r).m_output.str();
+        if((*r).m_pos_path_ast_tuple.m_ast) {
+            successful_parse_count++;
+        }
+    }
+    std::cout << shared_footer.str();
+    if(!successful_parse_count) {
+        std::cerr << "Info: Parse fail!" << std::endl;
+        return false;
+    }
+    std::cerr << "Info: Successful parse count: " << successful_parse_count << std::endl;
     return true;
 }
 

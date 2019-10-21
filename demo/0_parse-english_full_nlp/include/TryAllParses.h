@@ -24,6 +24,7 @@
 #include <list> // std::list
 #include <stack> // std::stack
 #include <string> // std::string
+#include <sstream> // std::stringstream
 
 bool get_pos_options(std::string               word,
                      std::vector<std::string>* pos_options);
@@ -32,6 +33,7 @@ void build_all_paths_from_pos_options(std::list<std::vector<int> >*             
                                       std::vector<int>*                             path_so_far = NULL, // TEMP
                                       int                                           word_index  = 0);   // TEMP
 void build_pos_paths_from_sentence(std::list<std::vector<std::string> >* all_paths_str, // OUT
-                                   std::string                           sentence);     // IN
+                                   std::string                           sentence,      // IN
+                                   std::stringstream                     &shared_info_messages);
 
 #endif

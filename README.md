@@ -8,9 +8,9 @@ Copyright (C) 2011-2017 <mailto:onlyuser@gmail.com>
 About
 -----
 
-parse-english is a minimum viable English parser implemented in LexYacc.
+parse-english is a minimum viable English parser implemented in LexYacc. It parses in parallel all possible interpretations of an English sentence accepted by a grammar and generates abstract syntax trees for successful parses. The algorithm is completely deterministic. No training data is required.
 
-See original prototype here: [NatLang](https://github.com/onlyuser/NatLang)
+See old version here: [NatLang](https://github.com/onlyuser/NatLang)
 
 A Motivating Example
 --------------------
@@ -21,14 +21,122 @@ the quick brown fox jumps over the lazy dog.
 </pre>
 
 output:
+<!-- <pre>
+                               S_LIST
+                                  |
+                                  |
+                                  |
+                               S_PUNC
+                                  |
+                                |---------------------------------|
+                                |                                 |
+                                S                                {.}
+                                |
+                                |
+                                |
+                              STMT
+                                |
+                                |
+                                |
+                           CLAUSE_LIST
+                                |
+                                |
+                                |
+                             CLAUSE
+                                |
+              |-------------------------------|
+              |                               |
+           NP_LIST                         VP_LIST
+              |                               |
+              |                               |
+              |                               |
+             NP                              VP
+              |                               |
+              |                               |
+              |                               |
+            POSS                       FREQ_DO_TARGET
+              |                               |
+              |                               |
+              |                               |
+          DET_ADJ_N                       DO_TARGET
+              |                               |
+   |-------------|                            |
+   |             |                            |
+ {the}         ADJ_N                      ADV_V_NP
+                 |                            |
+              |----------|                    |
+              |          |                    |
+          ADJ_LIST     {fox}                V_NP
+              |                               |
+          |-------|             |-----------------|
+          |       |             |                 |
+       ADV_ADJ ADV_ADJ       {jumps}           NP_LIST
+          |       |                               |
+          |       |                               |
+          |       |                               |
+       {quick} {brown}                           NP
+                                                  |
+                                                  |
+                                                  |
+                                              PREP_LIST
+                                                  |
+                                                  |
+                                                  |
+                                               PREP_NP
+                                                  |
+                                       |-------------|
+                                       |             |
+                                     {over}       NP_LIST
+                                                     |
+                                                     |
+                                                     |
+                                                     NP
+                                                     |
+                                                     |
+                                                     |
+                                                    POSS
+                                                     |
+                                                     |
+                                                     |
+                                                 DET_ADJ_N
+                                                     |
+                                              |---------|
+                                              |         |
+                                            {the}     ADJ_N
+                                                        |
+                                                     |-------|
+                                                     |       |
+                                                  ADJ_LIST {dog}
+                                                     |
+                                                     |
+                                                     |
+                                                  ADV_ADJ
+                                                     |
+                                                    |-
+                                                    |
+                                                  {lazy}
+</pre> -->
 ![picture alt](https://sites.google.com/site/onlyuser/files/ast_fox2.png "ast_fox2")
 
 Usage
 -----
 
 <pre>
-./demo/0_parse-english_full_nlp/bin/parse-english -e "the quick brown fox jumps over the lazy dog." -d | dot -Tpng -oast_fox2.png
+cd ./demo/0_parse-english_full_nlp
+./demo.sh "the quick brown fox jumps over the lazy dog"
 </pre>
+
+<table>
+    <tr><th> Switch </th><th> Description </th></tr>
+    <tr><td> -e SENTENCE </td><td> input sentence </td></tr>
+    <tr><td> -l </td><td> Lisp mode </td></tr>
+    <tr><td> -g </td><td> graph mode (slow for deep trees) </td></tr>
+    <tr><td> -d </td><td> dot mode </td></tr>
+    <tr><td> -x </td><td> extract ontology mode </td></tr>
+    <tr><td> -q </td><td> quiet mode </td></tr>
+    <tr><td> -m </td><td> memory debug </td></tr>
+    <tr><td> -n </td><td> indent lisp </td></tr>
+</table>
 
 Requirements
 ------------
@@ -37,8 +145,13 @@ Unix tools and 3rd party components (accessible from $PATH):
 
     gcc flex bison
 
-Supported Language Features
----------------------------
+Supported Features
+------------------
+* Parallel reentrant parsing
+* Lisp / graph / dot output (multiple trees)
+
+Supported Grammar Syntaxes
+--------------------------
 
 * Present tense
 * Progressive tense
@@ -49,6 +162,7 @@ Supported Language Features
 * Questions
 * Conditionals
 * Imperitive mood
+* Comparisons
 
 Limitations
 -----------

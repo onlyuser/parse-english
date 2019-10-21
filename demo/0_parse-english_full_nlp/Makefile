@@ -49,6 +49,7 @@ LIBS_PARENT = $(patsubst %, $(LIB_PATH_PARENT)/lib%.a, $(LIB_STEMS_PARENT))
 ifdef LIB_PATH_EXTERN
 	LIB_STEMS_EXTERN = ticppd
 endif
+LIB_STEMS_EXTERN = pthread
 LIB_FLAGS = \
 		$(patsubst %, -l%, $(LIB_STEMS_PARENT)) \
 		$(patsubst %, -l%, $(LIB_STEMS_EXTERN))
@@ -133,7 +134,7 @@ clean_objects : clean_yacc clean_lex
 # binary
 #==================
 
-CPP_STEMS = $(YACC_STEMS) $(LEX_STEMS) TryAllParses
+CPP_STEMS = $(YACC_STEMS) $(LEX_STEMS) TryAllParses Ontology
 OBJECTS = $(patsubst %, $(BUILD_PATH)/%.o, $(CPP_STEMS))
 LINT_FILES = $(patsubst %, $(BUILD_PATH)/%.lint, $(CPP_STEMS))
 

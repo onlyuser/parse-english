@@ -51,7 +51,7 @@ public:
     size_t size() const { return m_size_bytes; }
     std::string filename() const { return m_filename; }
     size_t line_number() const { return m_line_number; }
-    void dump(std::string indent) const;
+    std::string dump(std::string indent) const;
 
 private:
     size_t m_size_bytes;
@@ -71,7 +71,7 @@ public:
     void* _malloc(size_t size_bytes, std::string filename, size_t line_number, MemChunk::dtor_cb_t dtor_cb = NULL);
     void _free(void* ptr);
     void _free();
-    void dump(std::string indent) const;
+    std::string dump(std::string indent) const;
 
 private:
     typedef std::map<void*, MemChunk*> internal_type_t;

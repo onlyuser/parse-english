@@ -955,14 +955,16 @@ bool import_ast(options_t &options, xl::Allocator &alloc, xl::node::NodeIdentIFa
 
 void export_ast(options_t &options, const xl::node::NodeIdentIFace* ast)
 {
+    std::string output;
     switch(options.mode) {
-        case options_t::MODE_LISP:  xl::mvc::MVCView::print_lisp(ast, options.indent); break;
-        case options_t::MODE_XML:   xl::mvc::MVCView::print_xml(ast); break;
-        case options_t::MODE_GRAPH: xl::mvc::MVCView::print_graph(ast); break;
-        case options_t::MODE_DOT:   xl::mvc::MVCView::print_dot(ast, true); break;
+        case options_t::MODE_LISP:  output = xl::mvc::MVCView::print_lisp(ast, options.indent); break;
+        case options_t::MODE_XML:   output = xl::mvc::MVCView::print_xml(ast); break;
+        case options_t::MODE_GRAPH: output = xl::mvc::MVCView::print_graph(ast); break;
+        case options_t::MODE_DOT:   output = xl::mvc::MVCView::print_dot(ast, true); break;
         default:
             break;
     }
+    std::cout << output;
 }
 
 bool apply_options(options_t &options)

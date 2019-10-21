@@ -25,6 +25,7 @@
 #include <list> // std::list
 #include <stack> // std::stack
 #include <string> // std::string
+#include <sstream> // std::stringstream
 #include <algorithm> // std::sort
 #include <iostream> // std::cerr
 
@@ -51,16 +52,16 @@ bool get_pos_options(std::string              word,
         pos_options->push_back("VP(CONJ)");
         pos_options->push_back("ADJ(CONJ)");
         pos_options->push_back("PREP(CONJ)");
-        pos_options->push_back("PREP");
+        pos_options->push_back("PREP(x)");
     } else if(/*word == "for" ||*/ word == "and" || word == "nor" || word == "but" || word == "or" || word == "yet" /*|| word == "so"*/) {
         pos_options->push_back("CLAUSE(CONJ)");
         pos_options->push_back("NP(CONJ)");
         pos_options->push_back("VP(CONJ)");
         pos_options->push_back("ADJ(CONJ)");
         pos_options->push_back("PREP(CONJ)");
-    } else if(word == "because") {
-        pos_options->push_back("CLAUSE(CONJ)");
-        pos_options->push_back("because");
+    } else if(word == "going") {
+        pos_options->push_back("VGERUND");
+        pos_options->push_back("GOING-INFIN");
     } else if(word == ",") {
         pos_options->push_back("CLAUSE(CONJ)");
         pos_options->push_back("NP(CONJ)");
@@ -84,7 +85,7 @@ bool get_pos_options(std::string              word,
         pos_options->push_back("V");
         pos_options->push_back("VPAST");
         pos_options->push_back("VPASTPERF");
-    } else if(word == "like" || word == "likes" ||
+    } else if(/*word == "like" ||*/ word == "likes" ||
               word == "need" || word == "needs" ||
               word == "want" || word == "wants" ||
               word == "hate" || word == "hates" ||
@@ -113,7 +114,7 @@ bool get_pos_options(std::string              word,
         pos_options->push_back("ADV-ADJ");
     } else if(word == "to") {
         pos_options->push_back("to-V");
-        pos_options->push_back("PREP");
+        pos_options->push_back("PREP(x)");
     } else if(word == "are_or_were") {
         pos_options->push_back("are");
         pos_options->push_back("were");
@@ -128,7 +129,7 @@ bool get_pos_options(std::string              word,
     } else if(word == "that") {
         pos_options->push_back("DEM(that)");
         pos_options->push_back("WH-WORD(that)");
-    } else if(word == "never"     || word == "ever"    ||
+    } else if(word == "never"     || word == "ever"    || word == "even" ||
               word == "only"      || word == "just"    ||
               word == "also"      || word == "as-well" ||
               word == "neither"   || word == "either"  ||
@@ -138,6 +139,13 @@ bool get_pos_options(std::string              word,
     {
         pos_options->push_back("FREQ");
         pos_options->push_back("FREQ_EOS");
+    } else if(word == "as") {
+        pos_options->push_back("CMP(as)");
+        pos_options->push_back("PREP(as)");
+    } else if(word == "like") {
+        pos_options->push_back("V");
+        pos_options->push_back("V-INFIN");
+        pos_options->push_back("CMP(like)");
     }
     return pos_options->size();
 }
@@ -188,11 +196,18 @@ void build_all_paths_from_pos_options(std::list<std::vector<int> >*             
     }
 }
 
-void build_pos_paths_from_sentence(std::list<std::vector<std::string> >* all_paths_str, // OUT
-                                   std::string                           sentence)      // IN
+void build_pos_paths_from_sentence(std::list<std::vector<std::string> >*  all_paths_str, // OUT
+                                   std::string                            sentence,      // IN
+                                   std::stringstream                     &shared_info_messages)
 {
     if(!all_paths_str) {
         return;
+    }
+
+    {
+        std::string msg = "Step 1/4. Tag POS:";
+        std::string bar = std::string(msg.length(), '=');
+        shared_info_messages << std::endl << bar << std::endl << msg << std::endl << bar << std::endl << std::endl;
     }
 
     // populate pos_table from words
@@ -212,21 +227,27 @@ void build_pos_paths_from_sentence(std::list<std::vector<std::string> >* all_pat
 
         // print debug messages
         {
-            std::cerr << "INFO: {" << *p << "}:\t";
+            shared_info_messages << "INFO: {" << *p << "}:\t";
             if(pos_options.size()) {
                 for(std::vector<std::string>::iterator r = pos_options.begin(); r != pos_options.end(); r++) {
-                    std::cerr << *r;
+                    shared_info_messages << *r;
                     if(r != --pos_options.end()) {
-                        std::cerr << " ";
+                        shared_info_messages << " ";
                     }
                 }
             } else {
-                std::cerr << *p;
+                shared_info_messages << *p;
             }
-            std::cerr << std::endl;
+            shared_info_messages << std::endl;
         }
 
         word_index++;
+    }
+
+    {
+        std::string msg = "Step 2/4. Enumerate POS-paths:";
+        std::string bar = std::string(msg.length(), '=');
+        shared_info_messages << std::endl << bar << std::endl << msg << std::endl << bar << std::endl << std::endl;
     }
 
     // populate all_paths from pos_table
@@ -248,15 +269,15 @@ void build_pos_paths_from_sentence(std::list<std::vector<std::string> >* all_pat
         // print debug messages
         {
             int word_index = 0;
-            std::cerr << "INFO: path #" << path_index << ": ";
+            shared_info_messages << "INFO: Path #" << path_index << ": ";
             for(std::vector<int>::const_iterator r = path.begin(); r != path.end(); r++) {
-                std::cerr << pos_table[word_index][*r];
+                shared_info_messages << pos_table[word_index][*r];
                 if(r != --path.end()) {
-                    std::cerr << " ";
+                    shared_info_messages << " ";
                 }
                 word_index++;
             }
-            std::cerr << std::endl;
+            shared_info_messages << std::endl;
         }
 
         all_paths_str->push_back(path_str);

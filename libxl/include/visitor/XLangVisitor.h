@@ -22,12 +22,15 @@
 #include "visitor/XLangVisitorIFace.h" // visitor::VisitorIFace
 #include <stack> // std::stack
 #include <queue> // std::queue
+#include <sstream> // std::stringstream
 
 namespace xl { namespace visitor {
 
 class Visitor : virtual public VisitorIFace<const node::NodeIdentIFace>
 {
 public:
+    std::stringstream m_output_ss;
+
     Visitor() : m_allow_visit_null(true)
     {}
     virtual ~Visitor()

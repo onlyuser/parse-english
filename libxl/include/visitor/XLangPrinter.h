@@ -141,8 +141,8 @@ public:
     void visit(const node::TermNodeIFace<node::NodeIdentIFace::CHAR>*   _node);
     void visit(const node::TermNodeIFace<node::NodeIdentIFace::IDENT>*  _node);
     void visit_null();
-    static void print_header(bool horizontal);
-    static void print_footer();
+    static std::string print_header(bool horizontal);
+    static std::string print_footer();
     bool is_printer() const
     {
         return true;

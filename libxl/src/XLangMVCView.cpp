@@ -70,9 +70,9 @@ void MVCView::annotate_tree(const node::NodeIdentIFace*            _node,
     v.dispatch_visit(_node);
 }
 
-void MVCView::print_lisp(const node::NodeIdentIFace*            _node,
-                               bool                             indent,
-                               visitor::Filterable::filter_cb_t filter_cb)
+std::string MVCView::print_lisp(const node::NodeIdentIFace*            _node,
+                                      bool                             indent,
+                                      visitor::Filterable::filter_cb_t filter_cb)
 {
     if(indent) {
         visitor::IndentedLispPrinter v;
@@ -80,49 +80,54 @@ void MVCView::print_lisp(const node::NodeIdentIFace*            _node,
             v.set_filter_cb(filter_cb);
         }
         v.dispatch_visit(_node);
+        return v.m_output_ss.str();
     } else {
         visitor::LispPrinter v;
         if(filter_cb) {
             v.set_filter_cb(filter_cb);
         }
         v.dispatch_visit(_node);
+        return v.m_output_ss.str();
     }
 }
 
-void MVCView::print_xml(const node::NodeIdentIFace*            _node,
-                              visitor::Filterable::filter_cb_t filter_cb)
+std::string MVCView::print_xml(const node::NodeIdentIFace*            _node,
+                                     visitor::Filterable::filter_cb_t filter_cb)
 {
     visitor::XMLPrinter v;
     if(filter_cb) {
         v.set_filter_cb(filter_cb);
     }
     v.dispatch_visit(_node);
+    return v.m_output_ss.str();
 }
 
-void MVCView::print_dot(const node::NodeIdentIFace* _node,
-                              bool                  horizontal,
-                              bool                  print_digraph_block)
+std::string MVCView::print_dot(const node::NodeIdentIFace* _node,
+                                     bool                  horizontal,
+                                     bool                  print_digraph_block)
 {
     visitor::DotPrinter v(horizontal, print_digraph_block);
     v.dispatch_visit(_node);
+    return v.m_output_ss.str();
 }
 
-void MVCView::print_dot_header(bool horizontal)
+std::string MVCView::print_dot_header(bool horizontal)
 {
-    visitor::DotPrinter::print_header(horizontal);
+    return visitor::DotPrinter::print_header(horizontal);
 }
 
-void MVCView::print_dot_footer()
+std::string MVCView::print_dot_footer()
 {
-    visitor::DotPrinter::print_footer();
+    return visitor::DotPrinter::print_footer();
 }
 
 typedef const node::NodeIdentIFace nodeType;
-int ex(nodeType *p);
-void MVCView::print_graph(nodeType* p)
+std::string ex(nodeType *p);
+std::string MVCView::print_graph(nodeType* p)
 {
-    ex(p);
-    std::cout << std::endl;
+    std::stringstream output;
+    output << ex(p) << std::endl;
+    return output.str();
 }
 
 int del = 1; /* distance of graph columns */
@@ -130,7 +135,7 @@ int eps = 3; /* distance of graph lines */
 
 /* interface for drawing (can be replaced by "real" graphic using GD or other) */
 void graphInit (void);
-void graphFinish();
+std::string graphFinish();
 void graphBox (char *s, int *w, int *h);
 void graphDrawBox (char *s, int c, int l);
 void graphDrawArrow (int c1, int l1, int c2, int l2);
@@ -141,13 +146,12 @@ void exNode (nodeType *p, int c, int l, int *ce, int *cm);
 /*****************************************************************************/
 
 /* main entry point of the manipulation of the syntax tree */
-int ex (nodeType *p) {
+std::string ex (nodeType *p) {
     int rte, rtm;
 
     graphInit ();
     exNode (p, 0, 0, &rte, &rtm);
-    graphFinish();
-    return 0;
+    return graphFinish();
 }
 
 /*c----cm---ce---->                       drawing of term-nodes
@@ -253,17 +257,19 @@ void exNode
 
 char graph[lmax][cmax]; /* array for ASCII-Graphic */
 int graphNumber = 0;
+char buf[cmax];
 
-void graphTest (int l, int c)
+std::string graphTest (int l, int c)
 {   int ok;
     ok = 1;
     if(l < 0) ok = 0;
     if(l >= lmax) ok = 0;
     if(c < 0) ok = 0;
     if(c >= cmax) ok = 0;
-    if(ok) return;
-    printf ("\n+++error: l=%d, c=%d not in drawing rectangle 0, 0 ... %d, %d",
+    if(ok) return "";
+    sprintf (buf, "\n+++error: l=%d, c=%d not in drawing rectangle 0, 0 ... %d, %d",
         l, c, lmax, cmax);
+    return buf;
     //exit (1);
 }
 
@@ -276,7 +282,8 @@ void graphInit (void) {
     }
 }
 
-void graphFinish() {
+std::string graphFinish() {
+    std::stringstream ss;
     int i, j;
     for(i = 0; i < lmax; i++) {
         for(j = cmax-1; j > 0 && graph[i][j] == ' '; j--);
@@ -285,9 +292,15 @@ void graphFinish() {
         if(graph[i][j] == ' ') graph[i][j] = 0;
     }
     for(i = lmax-1; i > 0 && graph[i][0] == 0; i--);
-    printf ("\n\nGraph %d:\n", graphNumber++);
-    for(j = 0; j <= i; j++) printf ("\n%s", graph[j]);
-    printf("\n");
+    sprintf (buf, "\n\nGraph %d:\n", graphNumber++);
+    ss << buf;
+    for(j = 0; j <= i; j++) {
+        sprintf (buf, "\n%s", graph[j]);
+        ss << buf;
+    }
+    sprintf(buf, "\n");
+    ss << buf;
+    return ss.str();
 }
 
 void graphBox (char *s, int *w, int *h) {

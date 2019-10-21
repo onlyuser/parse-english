@@ -17,6 +17,7 @@
 
 #include "XLangAlloc.h" // Allocator
 #include <string> // std::string
+#include <sstream> // std::stringstream
 #include <iostream> // std::cout
 #include <stdlib.h> // malloc
 #include <stddef.h> // size_t
@@ -39,9 +40,11 @@ MemChunk::~MemChunk()
     }
 }
 
-void MemChunk::dump(std::string indent) const
+std::string MemChunk::dump(std::string indent) const
 {
-    std::cout << indent << m_filename << ":" << m_line_number << " .. " << m_size_bytes << " bytes";
+    std::stringstream output_ss;
+    output_ss << indent << m_filename << ":" << m_line_number << " .. " << m_size_bytes << " bytes";
+    return output_ss.str();
 }
 
 Allocator::Allocator(std::string name)
@@ -81,15 +84,15 @@ void Allocator::_free()
     m_chunk_map.clear();
 }
 
-void Allocator::dump(std::string indent) const
+std::string Allocator::dump(std::string indent) const
 {
-    std::cout << '\"' << m_name << "\" {" << std::endl;
-    for(auto p = m_chunk_map.begin(); p != m_chunk_map.end(); ++p)
-    {
-        (*p).second->dump(indent);
-        std::cout << std::endl;
+    std::stringstream output_ss;
+    output_ss << '\"' << m_name << "\" {" << std::endl;
+    for(auto p = m_chunk_map.begin(); p != m_chunk_map.end(); ++p) {
+        output_ss << (*p).second->dump(indent) << std::endl;
     }
-    std::cout << "};" << std::endl;
+    output_ss << "};" << std::endl;
+    return output_ss.str();
 }
 
 }

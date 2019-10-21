@@ -59,10 +59,11 @@ struct ScannerContext
     int         m_length; // length of buf
 
     // location placeholders
-    int m_line;
-    int m_column;
-    int m_prev_column;
-    int m_word_index;
+    int         m_line;
+    int         m_column;
+    int         m_prev_column;
+    int         m_word_index;
+    std::string m_orig_word;
 
     std::vector<uint32_t>* m_pos_lexer_id_path;
 
@@ -74,6 +75,8 @@ struct ScannerContext
 class ParserContext
 {
 public:
+    std::stringstream m_error_messages;
+
     ParserContext(xl::Allocator &alloc, const char* buf)
         : m_tree_context(alloc), m_scanner_context(buf)
     {}
@@ -103,7 +106,6 @@ void yyerror(YYLTYPE* loc, ParserContext* pc, yyscan_t scanner, const char* s);
 void yyerror(const char* s);
 int yylex(YYSTYPE* yylval_param, YYLTYPE* yylloc_param, yyscan_t yyscanner);
 
-std::stringstream &error_messages();
 std::string id_to_name(uint32_t lexer_id);
 uint32_t name_to_id(std::string name);
 uint32_t quick_lex(const char* s);

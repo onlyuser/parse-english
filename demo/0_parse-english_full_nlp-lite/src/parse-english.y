@@ -126,24 +126,13 @@ uint32_t name_to_id(std::string name)
 static std::string expand_contractions(std::string &sentence)
 {
     std::string s = sentence;
-    s = xl::replace(s, "gonna",   "going to");
-    s = xl::replace(s, "as well", "as-well");
     s = xl::replace(s, "can't",   "can not");
     s = xl::replace(s, "cannot",  "can not");
     s = xl::replace(s, "won't",   "will not");
-    s = xl::replace(s, "ain't",   "am not");
     s = xl::replace(s, "n't",     " not");
-    s = xl::replace(s, "n'",      "ng");
     s = xl::replace(s, "'ll",     " will");
     s = xl::replace(s, "'ve",     " have");
     s = xl::replace(s, "'m",      " am");
-    s = xl::replace(s, "'re",     " are_or_were");
-    s = xl::replace(s, "'d",      " did_or_had_or_would");
-    s = xl::replace(s, "'s",      " is_or_has_or_poss");
-    s = xl::replace(s, ",",       " , ");
-    s = xl::replace(s, ".",       " . ");
-    s = xl::replace(s, "?",       " ? ");
-    s = xl::replace(s, "!",       " ! ");
     return s;
 }
 

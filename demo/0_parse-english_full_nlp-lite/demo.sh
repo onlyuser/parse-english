@@ -3,7 +3,7 @@
 EXPR=$@
 
 if [ -z "$EXPR" ]; then
-    EXPR="the quick brown fox jumped over the lazy dog"
+    EXPR="he goes and she goes"
 fi
 
 IMAGE_FILE=`mktemp`

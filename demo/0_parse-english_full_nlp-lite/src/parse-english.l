@@ -159,19 +159,32 @@ adjective               {adjective_color}|{adjective_emotion}|{adjective_size}|{
  /*==========================================================================*/
  /* NOUN -- VERB -- ADJECTIVE */
 
-"N"|{pronoun}|{noun} {LOC;
+{pronoun}|{noun} {LOC;
                 LVAL.ident_value = TREE_CONTEXT.alloc_unique_string(std::string("{") + SCANNER_CONTEXT.m_orig_word + "}" + ((SCANNER_CONTEXT.m_orig_word == yytext) ? "" : yytext));
                 return ID_N;
             }
 
-"V"|{verb}  {LOC;
+{verb}      {LOC;
                 LVAL.ident_value = TREE_CONTEXT.alloc_unique_string(std::string("{") + SCANNER_CONTEXT.m_orig_word + "}" + ((SCANNER_CONTEXT.m_orig_word == yytext) ? "" : yytext));
                 return ID_V;
             }
 
-"ADJ"|{adjective} {LOC;
+{adjective} {LOC;
                 LVAL.ident_value = TREE_CONTEXT.alloc_unique_string(std::string("{") + SCANNER_CONTEXT.m_orig_word + "}" + ((SCANNER_CONTEXT.m_orig_word == yytext) ? "" : yytext));
                 return ID_ADJ;
+            }
+
+ /*==========================================================================*/
+ /* ARTICLE */
+
+"this"|"that"|"these"|"those" {LOC;
+                LVAL.ident_value = TREE_CONTEXT.alloc_unique_string(std::string("{") + SCANNER_CONTEXT.m_orig_word + "}" + ((SCANNER_CONTEXT.m_orig_word == yytext) ? "" : yytext));
+                return ID_DEM;
+            }
+
+"a"|"the"|"my"|"our"|"your"|"his"|"her"|"their" {LOC;
+                LVAL.ident_value = TREE_CONTEXT.alloc_unique_string(std::string("{") + SCANNER_CONTEXT.m_orig_word + "}" + ((SCANNER_CONTEXT.m_orig_word == yytext) ? "" : yytext));
+                return ID_ART_OR_PREFIXPOSS;
             }
 
  /*==========================================================================*/

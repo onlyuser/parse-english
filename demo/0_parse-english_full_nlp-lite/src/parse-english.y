@@ -107,6 +107,9 @@ std::string id_to_name(uint32_t lexer_id)
         // ADJECTIVE
         case ID_ADJ_N:             return "ADJ_N";
         //=================================================
+        // DEMONSTRATIVE -- ARTICLE/PREFIX-POSSESSIVE
+        case ID_DET_ADJ_N:         return "DET_ADJ_N";
+        //=================================================
         // LIST
         case ID_S_LIST:            return "S_LIST";
         case ID_CLAUSE_LIST:       return "CLAUSE_LIST";
@@ -164,14 +167,14 @@ static std::string expand_contractions(std::string &sentence)
 // rules for internal nodes
 %type<symbol_value> S S_PUNC STMT CLAUSE
                     NP VP
-                    V_NP
+                    V_NP DET_ADJ_N
                     ADJ_N
                     S_LIST CLAUSE_LIST NP_LIST VP_LIST ADJ_LIST
 
 // IDs for internal nodes
 %nonassoc           ID_S ID_S_PUNC ID_STMT ID_CLAUSE
                     ID_NP ID_VP
-                    ID_V_NP
+                    ID_V_NP  ID_DET_ADJ_N
                     ID_ADJ_N
                     ID_S_LIST ID_CLAUSE_LIST ID_NP_LIST ID_VP_LIST ID_ADJ_LIST
 
@@ -181,11 +184,13 @@ static std::string expand_contractions(std::string &sentence)
 
 // IDs for terminals
 %token<ident_value> ID_N ID_V ID_ADJ
+                    ID_DEM ID_ART_OR_PREFIXPOSS
                     ID_CONJ_CLAUSE ID_CONJ_NP ID_CONJ_VP
                     ID_PUNC
 
 // rules for terminals
 %type<symbol_value> N V ADJ
+                    DEM ART_OR_PREFIXPOSS
                     CONJ_CLAUSE CONJ_NP CONJ_VP
                     PUNC
 
@@ -220,7 +225,8 @@ CLAUSE:
 // NOUN PART -- VERB PART
 
 NP:
-      ADJ_N { $$ = MAKE_SYMBOL(ID_NP, 1, $1); }
+      DET_ADJ_N { $$ = MAKE_SYMBOL(ID_NP, 1, $1); }
+    | ADJ_N     { $$ = MAKE_SYMBOL(ID_NP, 1, $1); }
     ;
 
 VP:
@@ -241,6 +247,15 @@ V_NP:
 ADJ_N:
                N { $$ = MAKE_SYMBOL(ID_ADJ_N, 1, $1); }
     | ADJ_LIST N { $$ = MAKE_SYMBOL(ID_ADJ_N, 2, $1, $2); }
+    ;
+
+//=============================================================================
+// DEMONSTRATIVE -- ARTICLE/PREFIX-POSSESSIVE
+
+DET_ADJ_N:
+      DEM                     { $$ = MAKE_SYMBOL(ID_DET_ADJ_N, 1, $1); }
+    | DEM               ADJ_N { $$ = MAKE_SYMBOL(ID_DET_ADJ_N, 2, $1, $2); }
+    | ART_OR_PREFIXPOSS ADJ_N { $$ = MAKE_SYMBOL(ID_DET_ADJ_N, 2, $1, $2); }
     ;
 
 //=============================================================================
@@ -288,6 +303,17 @@ V:
 
 ADJ:
       ID_ADJ { $$ = MAKE_TERM(ID_ADJ, $1); }
+    ;
+
+//=============================================================================
+// DEMONSTRATIVE -- ARTICLE/PREFIX-POSSESSIVE
+
+DEM:
+      ID_DEM { $$ = MAKE_TERM(ID_DEM, $1); }
+    ;
+
+ART_OR_PREFIXPOSS:
+      ID_ART_OR_PREFIXPOSS { $$ = MAKE_TERM(ID_ART_OR_PREFIXPOSS, $1); }
     ;
 
 //=============================================================================
